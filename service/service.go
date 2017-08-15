@@ -2,27 +2,23 @@ package service
 
 import (
 	"net/http"
-	"io/ioutil"
 	"encoding/json"
 	"sync"
-	"../modelManager"
-	"os"
 	"fmt"
+	"os"
+	"../modelManager"
 )
 
-type DBInfo map[string]string
-type SInfo map[string]string
+type Config map[string]map[string]interface{}
 
 const (
-	filenameServerConfig = "/Users/zwirec/.config/vkchatscanner/config.json"
-	filenameDBConfig     = `/Users/zwirec/.config/vkchatscanner/db_config.json`
+	filenameConfig = "/Users/zwirec/.config/vkchatscanner/config.json"
 )
 
 //Service s
 type Service struct {
 	srv    *http.Server
-	dbInfo DBInfo
-	sInfo  SInfo
+	config Config
 }
 
 func NewService() *Service {
@@ -31,21 +27,13 @@ func NewService() *Service {
 
 func (s *Service) Run() error {
 
-	s.srv = &http.Server{Addr: ":" + s.sInfo["port"]}
-
-	if err := s.parseServerConfig(filenameServerConfig); err != nil {
+	if err := s.parseConfig(filenameConfig); err != nil {
 		return err
 	}
 
-	if err := s.parseDBConfig(filenameDBConfig); err != nil {
-		return err
-	}
+	s.srv = &http.Server{Addr: ":" + (s.config["server"]["port"]).(string)}
 
-	os.Setenv("PGHOST", s.dbInfo["host"])
-
-	//....//
-
-	if err := modelManager.ConnectToDB(); err != nil {
+	if err := modelManager.ConnectToDB(s.config["db"]); err != nil {
 		return err
 	}
 
@@ -69,29 +57,16 @@ func (s *Service) Run() error {
 	return nil
 }
 
-func (s *Service) parseServerConfig(filename string) error {
-
-	data, err := ioutil.ReadFile(filename)
-
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal([]byte(data), &s.dbInfo)
-
-	if err != nil {
-		return fmt.Errorf("%q: incorrect configuration file", filename)
-	}
-	return nil
-}
-
-func (s *Service) parseDBConfig(filename string) error {
-
-	data, err := ioutil.ReadFile(filename)
+func (s *Service) parseConfig(filename string) error {
+	file, err := os.Open(filename)
 
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal([]byte(data), &s.sInfo)
+
+	decoder := json.NewDecoder(file)
+
+	decoder.Decode(&s.config)
 
 	if err != nil {
 		return fmt.Errorf("%q: incorrect configuration file", filename)
