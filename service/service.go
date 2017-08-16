@@ -1,12 +1,13 @@
 package service
 
 import (
-	"net/http"
 	"encoding/json"
-	"sync"
 	"fmt"
+	"github.com/zwirec/TGChatScanner/modelManager"
+	"net/http"
 	"os"
-	"../modelManager"
+	"os/user"
+	"sync"
 )
 
 type Config map[string]map[string]interface{}

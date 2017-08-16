@@ -1,7 +1,7 @@
 package main
 
 import (
-	"./service"
+	"github.com/zwirec/TGChatScanner/service"
 	"log"
 )
 
