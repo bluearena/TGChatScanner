@@ -12,10 +12,6 @@ import (
 
 type Config map[string]map[string]interface{}
 
-const (
-	filenameConfig = "/Users/zwirec/.config/vkchatscanner/config.json"
-)
-
 //Service s
 type Service struct {
 	srv    *http.Server
@@ -27,8 +23,13 @@ func NewService() *Service {
 }
 
 func (s *Service) Run() error {
+	usr, err := user.Current()
+	if err != nil {
+		return err
+	}
 
-	if err := s.parseConfig(filenameConfig); err != nil {
+	configPath := usr.HomeDir + "/.config/vkchatscanner/config.json"
+	if err := s.parseConfig(configPath); err != nil {
 		return err
 	}
 
