@@ -10,6 +10,8 @@ import (
 
 var db *sql.DB
 
+
+
 func ConnectToDB(dbinfo map[string]interface{}) error {
 	db, err := gorm.Open("postgres",
 							fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s",
