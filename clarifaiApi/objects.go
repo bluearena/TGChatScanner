@@ -14,10 +14,13 @@ type (
 	}
 
 	Model struct {
-		Name      string `json:"name"`
-		Id        string `json:"id"`
-		CreatedAt string `json:"created_at"`
-		AppID     string `json:"app_id"`
+		Name         string       `json:"name"`
+		Id           string       `json:"id"`
+		CreatedAt    string       `json:"created_at"`
+		AppID        string       `json:"app_id"`
+		OutputInfo   OutputInfo   `json:"output_info"`
+		ModelVersion ModelVersion `json:"model_version"`
+		DisplayName  string       `json:"display_name"`
 	}
 
 	ModelVersion struct {
@@ -29,6 +32,7 @@ type (
 	OutputInfo struct {
 		Message string `json:"message"`
 		Type    string `json:"type"`
+		TypeExt string `json:"type_ext"`
 	}
 
 	Output struct {
@@ -53,7 +57,8 @@ type (
 	}
 
 	Input struct {
-		Data Data `json:"data"`
+		Id   string `json:"id"`
+		Data Data   `json:"data"`
 	}
 
 	Request struct {
