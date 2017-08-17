@@ -1,5 +1,7 @@
 package clarifaiApi
 
+import "time"
+
 type (
 	Status struct {
 		Code        uint   `json:"code"`
@@ -16,7 +18,7 @@ type (
 	Model struct {
 		Name         string       `json:"name"`
 		Id           string       `json:"id"`
-		CreatedAt    string       `json:"created_at"`
+		CreatedAt    time.Time    `json:"created_at"`
 		AppID        string       `json:"app_id"`
 		OutputInfo   OutputInfo   `json:"output_info"`
 		ModelVersion ModelVersion `json:"model_version"`
@@ -24,9 +26,9 @@ type (
 	}
 
 	ModelVersion struct {
-		Id        string `json:"id"`
-		CreatedAt string `json:"created_at"`
-		Status    Status `json:"status"`
+		Id        string    `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		Status    Status    `json:"status"`
 	}
 
 	OutputInfo struct {
@@ -38,7 +40,7 @@ type (
 	Output struct {
 		Id          string      `json:"id"`
 		Status      Status      `json:"status"`
-		CreatedAt   string      `json:"created_at"`
+		CreatedAt   time.Time   `json:"created_at"`
 		Model       Model       `json:"model"`
 		Input       Input       `json:"input"`
 		ConceptData ConceptData `json:"data"`
