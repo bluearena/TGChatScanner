@@ -25,7 +25,7 @@ type MessageEntity struct {
 }
 
 type PhotoSize struct {
-    FileId   int `json:"file_id"`
+    FileId   string `json:"file_id"`
     Width    int `json:"width"`
     Height   int `json:"height"`
     FileSize int `json:"file_size, omitempty"`
@@ -58,7 +58,7 @@ type ChatPhoto struct {
 }
 
 type File struct {
-    FileId string `json:"file_id"`
+    FileId   string `json:"file_id"`
     FileSize int `json:"file_size, omitempty"`
     FilePath string `json:"file_path, omitempty"`
 }

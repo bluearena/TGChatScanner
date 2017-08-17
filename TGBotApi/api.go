@@ -5,19 +5,17 @@ import (
     "os"
     "net/http"
     "bytes"
-
-    "strings"
     "io/ioutil"
     "encoding/json"
 )
 
 const (
     TGApiUrl = "https://api.telegram.org/bot"
+    TGDownloadUrl ="https://api.telegram.org/file/bot"
 )
 
-
-func encodeApiUrl(method string, params *url.Values) string{
-   var buff bytes.Buffer
+func encodeApiUrl(method string, params *url.Values) string {
+    var buff bytes.Buffer
     buff.WriteString(TGApiUrl)
     buff.WriteString(botToken())
     buff.WriteString("/")
@@ -27,39 +25,43 @@ func encodeApiUrl(method string, params *url.Values) string{
     return buff.String()
 }
 
-func sendRequestToApi(method string, params *url.Values) (*http.Response, error){
-    reqUrl := encodeApiUrl(method,params)
-    response, err := http.Get(reqUrl)
-    return response,err
+func encodeDownloadUrl(filePath string) string{
+    var buff bytes.Buffer
+    buff.WriteString(TGDownloadUrl)
+    buff.WriteString(botToken())
+    buff.WriteString("/")
+    buff.WriteString(filePath)
+    return buff.String()
 }
 
-func botToken() string{
+func sendRequestToApi(method string, params *url.Values) (*http.Response, error) {
+    reqUrl := encodeApiUrl(method, params)
+    response, err := http.Get(reqUrl)
+    return response, err
+}
+
+func botToken() string {
     return os.Getenv("BOTACCESS")
 }
 
-func PrepareFile(fileId string) (File, error){
-    params:= url.Values{}
+func PrepareFile(fileId string) (File, error) {
+    params := url.Values{}
     params.Add("file_id", fileId)
     response, err := sendRequestToApi("upload.GetFile", &params)
-    if err != nil{
+    if err != nil {
         //TODO: Parse error
         return File{}, err
     }
     body, err := ioutil.ReadAll(response.Body)
-    if err != nil{
+    if err != nil {
         //TODO: determine what kind of error it could be and handle it
     }
     var result File
-    err = json.Unmarshal(body,&result)
-    if err != nil{
+    err = json.Unmarshal(body, &result)
+    if err != nil {
         return File{}, err
     }
     return result, nil
 }
-
-
-
-
-
 
 
