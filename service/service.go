@@ -40,13 +40,15 @@ func NewService() *Service {
 func (s *Service) Run() error {
 
     usr, err := user.Current()
+
     if err != nil {
         s.logger.Println(err)
 		return err
     }
 
-    configPath := usr.HomeDir + "/.config/vkchatscanner/config.json"
-    if err := s.parseConfig(configPath); err != nil {
+    configPath := usr.HomeDir + "/.config/tgchatscanner/config.json"
+
+	if err := s.parseConfig(configPath); err != nil {
         s.logger.Println(err)
 		return err
     }
@@ -54,12 +56,18 @@ func (s *Service) Run() error {
     s.signalProcessing()
 
     db, err := modelManager.ConnectToDB(s.config["db"])
+
     api := clarifaiApi.NewClarifaiApi(clarifaiApi.ApiKey)
 
-    //TODO: setup workers number as configurable variable
-    fdp := requestHandler.NewFileDownloaderPool(10, 100)
+	workers_n, ok := s.config["server"]["workers"].(int)
 
-    php := requestHandler.NewPhotoHandlersPool(10, 100, fdp)
+	if !ok {
+		workers_n = 10
+	}
+
+    fdp := requestHandler.NewFileDownloaderPool(workers_n, 100)
+
+    php := requestHandler.NewPhotoHandlersPool(workers_n, 100, fdp)
 
     cache := requestHandler.MemoryCache{}
     context := requestHandler.AppContext{
@@ -89,6 +97,7 @@ func (s *Service) Run() error {
     s.srv = &http.Server{Addr: ":" + s.config["server"]["port"].(string), Handler: s.rAPIHandler, TLSConfig: config}
 
     var wg sync.WaitGroup
+
     wg.Add(1)
 
     go func() {
@@ -109,7 +118,9 @@ func (s *Service) parseConfig(filename string) error {
         return err
     }
 
-    json.Unmarshal(file, &s.config)
+    if err = json.Unmarshal(file, &s.config); err != nil {
+		return err
+	}
 
     if err != nil {
         return fmt.Errorf("%q: incorrect configuration file", filename)
