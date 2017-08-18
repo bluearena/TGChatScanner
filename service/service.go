@@ -1,105 +1,120 @@
 package service
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"os"
-	"os/user"
-	"sync"
-	"github.com/zwirec/TGChatScanner/requestHandler"
-	"os/signal"
-	"syscall"
-	"log"
-	"crypto/tls"
-	"github.com/kabukky/httpscerts"
+    "encoding/json"
+    "fmt"
+    "net/http"
+    "os"
+    "os/user"
+    "sync"
+    "github.com/zwirec/TGChatScanner/requestHandler"
+    "os/signal"
+    "syscall"
+    "log"
+    "crypto/tls"
+    "github.com/kabukky/httpscerts"
+    "github.com/zwirec/TGChatScanner/clarifaiApi"
+    "github.com/zwirec/TGChatScanner/modelManager"
 )
 
 type Config map[string]map[string]interface{}
 
 //Service s
 type Service struct {
-	mux         *http.ServeMux
-	srv         *http.Server
-	rAPIHandler *requestHandler.RequestHandler
-	config      Config
+    mux         *http.ServeMux
+    srv         *http.Server
+    rAPIHandler *requestHandler.RequestHandler
+    config      Config
 }
 
 func NewService() *Service {
-	return &Service{rAPIHandler: requestHandler.NewRequestHandler(), mux: http.NewServeMux()}
+    return &Service{rAPIHandler: requestHandler.NewRequestHandler(), mux: http.NewServeMux()}
 }
 
 func (s *Service) Run() error {
 
-	usr, err := user.Current()
-	if err != nil {
-		return err
-	}
+    usr, err := user.Current()
+    if err != nil {
+        return err
+    }
 
-	configPath := usr.HomeDir + "/.config/vkchatscanner/config.json"
-	if err := s.parseConfig(configPath); err != nil {
-		return err
-	}
+    configPath := usr.HomeDir + "/.config/vkchatscanner/config.json"
+    if err := s.parseConfig(configPath); err != nil {
+        return err
+    }
 
-	s.signalProcessing()
+    s.signalProcessing()
 
-	err = httpscerts.Check("cert.pem", "key.pem")
-	// If they are not available, generate new ones.
-	if err != nil {
-		err = httpscerts.Generate("cert.pem", "key.pem", "127.0.0.1:"+ s.config["server"]["port"].(string))
-		if err != nil {
-			log.Fatal("Error: Couldn't create https certs.")
-		}
-	}
+    db, err := modelManager.ConnectToDB(s.config["db"])
+    api := clarifaiApi.NewClarifaiApi(clarifaiApi.ApiKey)
+    //TODO: setup workers number as configurable variable
+    fdp := requestHandler.NewFileDownloaderPool(10, 100)
 
-	cer, err := tls.LoadX509KeyPair("cert.pem", "key.pem")
+    php := requestHandler.NewPhotoHandlersPool(10, 100, fdp)
 
-	config := &tls.Config{Certificates: []tls.Certificate{cer}}
+    cache := requestHandler.MemoryCache{}
+    context := requestHandler.AppContext{Db: db, Downloaders: fdp, PhotoHandlers: php, CfApi: api, Cache: &cache}
 
-	s.srv = &http.Server{Addr: ":" + s.config["server"]["port"].(string), Handler: s.rAPIHandler, TLSConfig:config}
+    s.rAPIHandler.SetAppContext(&context)
+    s.rAPIHandler.RegisterHandlers()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+    err = httpscerts.Check("cert.pem", "key.pem")
+    // If they are not available, generate new ones.
+    if err != nil {
+        err = httpscerts.Generate("cert.pem", "key.pem", "127.0.0.1:"+s.config["server"]["port"].(string))
+        if err != nil {
+            log.Fatal("Error: Couldn't create https certs.")
+        }
+    }
 
-	go func() {
-		//defer wg.Done()
-		if err := s.srv.ListenAndServeTLS("cert.pem", "key.pem"); err != nil {
-			wg.Done()
-		}
-	}()
+    cer, err := tls.LoadX509KeyPair("cert.pem", "key.pem")
 
-	wg.Wait()
-	return nil
+    config := &tls.Config{Certificates: []tls.Certificate{cer}}
+
+    s.srv = &http.Server{Addr: ":" + s.config["server"]["port"].(string), Handler: s.rAPIHandler, TLSConfig: config}
+
+    var wg sync.WaitGroup
+    wg.Add(1)
+
+    go func() {
+        //defer wg.Done()
+        if err := s.srv.ListenAndServeTLS("cert.pem", "key.pem"); err != nil {
+            wg.Done()
+        }
+    }()
+
+    wg.Wait()
+    return nil
 }
 
 func (s *Service) parseConfig(filename string) error {
-	file, err := os.Open(filename)
+    file, err := os.Open(filename)
 
-	if err != nil {
-		return err
-	}
+    if err != nil {
+        return err
+    }
 
-	decoder := json.NewDecoder(file)
+    decoder := json.NewDecoder(file)
 
-	decoder.Decode(&s.config)
+    decoder.Decode(&s.config)
 
-	if err != nil {
-		return fmt.Errorf("%q: incorrect configuration file", filename)
-	}
-	return nil
+    if err != nil {
+        return fmt.Errorf("%q: incorrect configuration file", filename)
+    }
+    return nil
 }
 
 func (s *Service) signalProcessing() {
-	c := make(chan os.Signal)
-	signal.Notify(c, syscall.SIGINT)
-	go s.handler(c)
+    c := make(chan os.Signal)
+    signal.Notify(c, syscall.SIGINT)
+    go s.handler(c)
 }
 
 func (s *Service) handler(c chan os.Signal) {
-	for {
-		<-c
-		log.Print("Gracefully stopping...")
-		s.srv.Shutdown(nil)
-		os.Exit(0)
-	}
+    for {
+        <-c
+        log.Print("Gracefully stopping...")
+        s.srv.Shutdown(nil)
+        os.Exit(0)
+    }
 }

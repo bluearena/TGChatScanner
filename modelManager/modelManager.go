@@ -6,15 +6,9 @@ import (
 	"fmt"
 )
 
-var db *gorm.DB
+func ConnectToDB(dbinfo map[string]interface{}) (*gorm.DB, error) {
 
-func ConnectToDB(dbinfo map[string]string) (err error) {
-
-	if db != nil {
-		return nil
-	}
-
-	db, err = gorm.Open(dbinfo["engine"],
+	db, err := gorm.Open(dbinfo["engine"].(string),
 		fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s",
 			dbinfo["host"],
 			dbinfo["port"],
@@ -22,8 +16,7 @@ func ConnectToDB(dbinfo map[string]string) (err error) {
 			dbinfo["dbname"],
 			dbinfo["password"]))
 	if err != nil {
-		return err
+		return nil,err
 	}
-
-	return nil
+	return db, err
 }
