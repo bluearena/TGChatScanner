@@ -3,11 +3,10 @@ package requestHandler
 import (
     "net/http"
     "io/ioutil"
-    "log"
     "encoding/json"
     "github.com/zwirec/TGChatScanner/TGBotApi"
     "regexp"
-	"fmt"
+    "fmt"
 )
 
 func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
@@ -26,17 +25,15 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
     }
     ctx := req.Context()
     if len(update.Message.Photo) != 0 {
+        appCtx := ctx.Value(appContextKey).(AppContext)
+        appCtx.PhotoHandlers.RequestPhotoHandling(&update.Message, appCtx.CfApi)
 
-        for _, p := range update.Message.Photo {
-            appCtx := ctx.Value(appContextKey).(AppContext)
-            appCtx.PhotoHandlers.RequestPhotoHandling(p)
-        }
     } else if update.Message.Entities[0].Type == "bot_command" {
         appCtx := ctx.Value(appContextKey).(AppContext)
         if err := AddSubsription(update.Message, appCtx.Cache); err != nil {
-			logger.Println(err)
-			return
-		}
+            logger.Println(err)
+            return
+        }
     }
     w.WriteHeader(http.StatusOK)
 }
@@ -46,7 +43,7 @@ func AddSubsription(message TGBotApi.Message, cache *MemoryCache) error {
     command := r.FindStringSubmatch(message.Text)
 
     if len(command) == 0 {
-		return fmt.Errorf("unexpected command %s", message.Text)
+        return fmt.Errorf("unexpected command %s", message.Text)
     }
 
     userKey := command[2]
@@ -58,6 +55,6 @@ func AddSubsription(message TGBotApi.Message, cache *MemoryCache) error {
     chatId := message.From.Id
 
     //TODO: store subscripton in database
-	return fmt.Errorf("New subscription: %s, $s", userId, chatId)
+    return fmt.Errorf("New subscription: %s, $s", userId, chatId)
 
 }

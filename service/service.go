@@ -15,7 +15,7 @@ import (
     "github.com/kabukky/httpscerts"
     "github.com/zwirec/TGChatScanner/clarifaiApi"
     "github.com/zwirec/TGChatScanner/modelManager"
-	"io/ioutil"
+    "io/ioutil"
 )
 
 type Config map[string]map[string]interface{}
@@ -26,15 +26,15 @@ type Service struct {
     srv         *http.Server
     rAPIHandler *requestHandler.RequestHandler
     config      Config
-	logger 		*log.Logger
+    logger      *log.Logger
 }
 
 func NewService() *Service {
     return &Service{
-					rAPIHandler: requestHandler.NewRequestHandler(),
-					mux: http.NewServeMux(),
-					logger: log.New(os.Stdout, "", log.LstdFlags),
-	}
+        rAPIHandler: requestHandler.NewRequestHandler(),
+        mux:         http.NewServeMux(),
+        logger:      log.New(os.Stdout, "", log.LstdFlags),
+    }
 }
 
 func (s *Service) Run() error {
@@ -42,13 +42,13 @@ func (s *Service) Run() error {
     usr, err := user.Current()
     if err != nil {
         s.logger.Println(err)
-		return err
+        return err
     }
 
     configPath := usr.HomeDir + "/.config/vkchatscanner/config.json"
     if err := s.parseConfig(configPath); err != nil {
         s.logger.Println(err)
-		return err
+        return err
     }
 
     s.signalProcessing()
@@ -59,17 +59,17 @@ func (s *Service) Run() error {
     //TODO: setup workers number as configurable variable
     fdp := requestHandler.NewFileDownloaderPool(10, 100)
 
-    php := requestHandler.NewPhotoHandlersPool(10, 100, fdp)
+    php := requestHandler.NewPhotoHandlersPool(10, 100)
 
     cache := requestHandler.MemoryCache{}
     context := requestHandler.AppContext{
-		Db: db,
-		Downloaders: fdp,
-		PhotoHandlers: php,
-		CfApi: api,
-		Cache: &cache,
-		Logger: s.logger,
-	}
+        Db:            db,
+        Downloaders:   fdp,
+        PhotoHandlers: php,
+        CfApi:         api,
+        Cache:         &cache,
+        Logger:        s.logger,
+    }
 
     s.rAPIHandler.SetAppContext(&context)
     s.rAPIHandler.RegisterHandlers()
@@ -103,7 +103,7 @@ func (s *Service) Run() error {
 }
 
 func (s *Service) parseConfig(filename string) error {
-	file, err := ioutil.ReadFile(filename)
+    file, err := ioutil.ReadFile(filename)
 
     if err != nil {
         return err

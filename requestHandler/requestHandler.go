@@ -18,7 +18,7 @@ type RequestHandler struct {
 
 type AppContext struct {
     Db            *gorm.DB
-    Downloaders   *FileDownloaderPool
+    Downloaders   *FileDownloadersPool
     PhotoHandlers *PhotoHandlersPool
     CfApi         *clarifaiApi.ClarifaiApi
     Cache         *MemoryCache
