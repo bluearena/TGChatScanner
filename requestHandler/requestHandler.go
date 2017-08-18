@@ -6,10 +6,11 @@ import (
 	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	"log"
 	"net/http"
+	"context"
 )
 
 type RequestHandler struct {
-	mux     *http.ServeMux
+	mux *http.ServeMux
 }
 
 type AppContext struct {
@@ -48,9 +49,14 @@ func (r *RequestHandler) SetAppContext(context *AppContext) {
 	appContext = *context
 }
 
+func AddLogger(ctx context.Context, req *http.Request) context.Context {
+	return context.WithValue(ctx, loggerContextKey, appContext.Logger)
+}
+
 func middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		next.ServeHTTP(rw, req)
+		ctx := AddLogger(req.Context(), req)
+		next.ServeHTTP(rw, req.WithContext(ctx))
 	})
 }
 
