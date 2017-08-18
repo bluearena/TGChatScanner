@@ -3,6 +3,7 @@ package clarifaiApi
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -34,7 +35,12 @@ func NewClarifaiApi(apiKey string) *ClarifaiApi {
 
 func (ca *ClarifaiApi) RecognizeImage(url string, minProbability float64) ([]string, error) {
 	result, err := ca.RecognizeImages([]string{url}, minProbability)
-	return result[0], err
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result[0], nil
 }
 
 // Recognize images and return tags
@@ -42,7 +48,7 @@ func (ca *ClarifaiApi) RecognizeImages(urls []string, minProbability float64) ([
 	requestBody := Request{make([]Input, len(urls))}
 
 	for i, url := range urls {
-		requestBody.Inputs[i] = Input{Data{Image{url}}}
+		requestBody.Inputs[i] = Input{Data: Data{Image{url}}}
 	}
 
 	b, err := json.Marshal(requestBody)
@@ -75,6 +81,11 @@ func (ca *ClarifaiApi) RecognizeImages(urls []string, minProbability float64) ([
 
 	tags := make([][]string, len(responseBody.Outputs))
 	for i, output := range responseBody.Outputs {
+		if output.Status.Code != 10000 {
+			err := errors.New(output.Input.Data.Image.Url + ": " + output.Status.Description)
+			return nil, err
+		}
+
 		for _, concept := range output.ConceptData.Concepts {
 			if concept.Value >= minProbability {
 				tags[i] = append(tags[i], concept.Name)
