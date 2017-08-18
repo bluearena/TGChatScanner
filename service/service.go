@@ -64,14 +64,9 @@ func (s *Service) Run() error {
 	if !ok {
 		workers_n = 10
 	}
-
-<<<<<<< HEAD
     fdp := requestHandler.NewFileDownloaderPool(workers_n, 100)
 
-    php := requestHandler.NewPhotoHandlersPool(workers_n, 100, fdp)
-=======
     php := requestHandler.NewPhotoHandlersPool(10, 100)
->>>>>>> 695fb6bbd05ea59c0c22028f23308d6b69a14f19
 
     cache := requestHandler.MemoryCache{}
     context := requestHandler.AppContext{
