@@ -23,14 +23,11 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 		logger.Printf("Error during unmarshaling request on %s : %s", req.URL.String(), err)
 		return
 	}
-	ctx := req.Context()
 	if len(update.Message.Photo) != 0 {
-		appCtx := ctx.Value(appContextKey).(AppContext)
-		appCtx.PhotoHandlers.RequestPhotoHandling(&update.Message, appCtx.CfApi)
+		appContext.PhotoHandlers.RequestPhotoHandling(&update.Message, appContext.CfApi)
 
 	} else if update.Message.Entities[0].Type == "bot_command" {
-		appCtx := ctx.Value(appContextKey).(AppContext)
-		if err := AddSubsription(update.Message, appCtx.Cache); err != nil {
+		if err := AddSubsription(update.Message, appContext.Cache); err != nil {
 			logger.Println(err)
 			return
 		}

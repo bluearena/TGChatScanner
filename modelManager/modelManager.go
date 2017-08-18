@@ -7,7 +7,6 @@ import (
 )
 
 func ConnectToDB(dbinfo map[string]interface{}) (*gorm.DB, error) {
-
 	db, err := gorm.Open(dbinfo["engine"].(string),
 		fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s",
 			dbinfo["host"],

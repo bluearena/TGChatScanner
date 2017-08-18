@@ -16,15 +16,6 @@ type ClarifaiApi struct {
 	apiKey     string
 }
 
-var api *ClarifaiApi = nil
-
-func GetApiInstance() *ClarifaiApi {
-	if api != nil {
-		return api
-	}
-	return NewClarifaiApi(apiUrl)
-}
-
 func NewClarifaiApi(apiKey string) *ClarifaiApi {
 	return &ClarifaiApi{
 		httpClient: &http.Client{},

@@ -10,7 +10,7 @@ func registerUser(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	data := req.PostForm
 	hash, err := bcrypt.GenerateFromPassword([]byte(data["password"][0]), bcrypt.DefaultCost)
-	logger := req.Context().Value(appContextKey).(AppContext).Logger
+	logger := req.Context().Value(loggerContextKey).(AppContext).Logger
 
 	if err != nil {
 		logger.Println(err)
