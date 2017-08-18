@@ -11,8 +11,6 @@ import (
     "os/signal"
     "syscall"
     "log"
-    "crypto/tls"
-    "github.com/kabukky/httpscerts"
     "github.com/zwirec/TGChatScanner/clarifaiApi"
     "github.com/zwirec/TGChatScanner/modelManager"
     "io/ioutil"
@@ -81,19 +79,7 @@ func (s *Service) Run() error {
     s.rAPIHandler.SetAppContext(&context)
     s.rAPIHandler.RegisterHandlers()
 
-    err = httpscerts.Check("cert.pem", "key.pem")
-    if err != nil {
-        err = httpscerts.Generate("cert.pem", "key.pem", "127.0.0.1:"+s.config["server"]["port"].(string))
-        if err != nil {
-            log.Fatal("error: couldn't create https certs.")
-        }
-    }
-
-    cer, err := tls.LoadX509KeyPair("cert.pem", "key.pem")
-
-    config := &tls.Config{Certificates: []tls.Certificate{cer}}
-
-    s.srv = &http.Server{Addr: ":" + s.config["server"]["port"].(string), Handler: s.rAPIHandler, TLSConfig: config}
+    s.srv = &http.Server{Addr: ":" + s.config["server"]["port"].(string), Handler: s.rAPIHandler}
 
     var wg sync.WaitGroup
 
@@ -101,7 +87,7 @@ func (s *Service) Run() error {
 
     go func() {
         //defer wg.Done()
-        if err := s.srv.ListenAndServeTLS("cert.pem", "key.pem"); err != nil {
+        if err := s.srv.ListenAndServe(); err != nil {
             wg.Done()
         }
     }()
