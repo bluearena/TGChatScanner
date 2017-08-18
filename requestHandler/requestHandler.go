@@ -22,15 +22,15 @@ type AppContext struct {
     PhotoHandlers *PhotoHandlersPool
     CfApi         *clarifaiApi.ClarifaiApi
     Cache         *MemoryCache
+    Logger        *log.Logger
 }
 
-type key int
+type appContext string
 
-const appContextKey = 0
+const appContextKey string = "appctx"
 
 func NewRequestHandler() *RequestHandler {
     mux := http.NewServeMux()
-    // mux.HandleFunc("/api/users/register", RegisterUser)
     return &RequestHandler{mux: mux}
 }
 
@@ -39,8 +39,8 @@ func (r *RequestHandler) RegisterHandlers() {
     r.mux.Handle(TGBotApi.GetWebhookUrl(), middleware(http.HandlerFunc(BotUpdateHanlder), *r.Context))
 }
 
-func (rh *RequestHandler) SetAppContext(context *AppContext) {
-    rh.Context = context
+func (r *RequestHandler) SetAppContext(context *AppContext) {
+    r.Context = context
 }
 
 func AddAppContext(appctx AppContext, ctx context.Context, req *http.Request) context.Context {
@@ -58,14 +58,16 @@ func RegisterUser(w http.ResponseWriter, req *http.Request) {
     req.ParseForm()
     data := req.PostForm
     hash, err := bcrypt.GenerateFromPassword([]byte(data["password"][0]), bcrypt.DefaultCost)
+    logger := req.Context().Value("appctx").(AppContext).Logger
+
     if err != nil {
-        log.Fatal(err)
+        logger.Println(err)
     }
-    fmt.Println("Hash to store:", string(hash))
+    fmt.Fprintf(w, "Hash to store: %s", string(hash))
     return
 }
 
-func (rH *RequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    rH.mux.ServeHTTP(w, r)
+func (r *RequestHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+    r.mux.ServeHTTP(w, req)
     return
 }

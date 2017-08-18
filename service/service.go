@@ -15,6 +15,7 @@ import (
     "github.com/kabukky/httpscerts"
     "github.com/zwirec/TGChatScanner/clarifaiApi"
     "github.com/zwirec/TGChatScanner/modelManager"
+	"io/ioutil"
 )
 
 type Config map[string]map[string]interface{}
@@ -25,45 +26,59 @@ type Service struct {
     srv         *http.Server
     rAPIHandler *requestHandler.RequestHandler
     config      Config
+	logger 		*log.Logger
 }
 
 func NewService() *Service {
-    return &Service{rAPIHandler: requestHandler.NewRequestHandler(), mux: http.NewServeMux()}
+    return &Service{
+					rAPIHandler: requestHandler.NewRequestHandler(),
+					mux: http.NewServeMux(),
+					logger: log.New(os.Stdout, "", log.LstdFlags),
+	}
 }
 
 func (s *Service) Run() error {
 
     usr, err := user.Current()
     if err != nil {
-        return err
+        s.logger.Println(err)
+		return err
     }
 
     configPath := usr.HomeDir + "/.config/vkchatscanner/config.json"
     if err := s.parseConfig(configPath); err != nil {
-        return err
+        s.logger.Println(err)
+		return err
     }
 
     s.signalProcessing()
 
     db, err := modelManager.ConnectToDB(s.config["db"])
     api := clarifaiApi.NewClarifaiApi(clarifaiApi.ApiKey)
+
     //TODO: setup workers number as configurable variable
     fdp := requestHandler.NewFileDownloaderPool(10, 100)
 
     php := requestHandler.NewPhotoHandlersPool(10, 100, fdp)
 
     cache := requestHandler.MemoryCache{}
-    context := requestHandler.AppContext{Db: db, Downloaders: fdp, PhotoHandlers: php, CfApi: api, Cache: &cache}
+    context := requestHandler.AppContext{
+		Db: db,
+		Downloaders: fdp,
+		PhotoHandlers: php,
+		CfApi: api,
+		Cache: &cache,
+		Logger: s.logger,
+	}
 
     s.rAPIHandler.SetAppContext(&context)
     s.rAPIHandler.RegisterHandlers()
 
     err = httpscerts.Check("cert.pem", "key.pem")
-    // If they are not available, generate new ones.
     if err != nil {
         err = httpscerts.Generate("cert.pem", "key.pem", "127.0.0.1:"+s.config["server"]["port"].(string))
         if err != nil {
-            log.Fatal("Error: Couldn't create https certs.")
+            log.Fatal("error: couldn't create https certs.")
         }
     }
 
@@ -88,15 +103,13 @@ func (s *Service) Run() error {
 }
 
 func (s *Service) parseConfig(filename string) error {
-    file, err := os.Open(filename)
+	file, err := ioutil.ReadFile(filename)
 
     if err != nil {
         return err
     }
 
-    decoder := json.NewDecoder(file)
-
-    decoder.Decode(&s.config)
+    json.Unmarshal(file, &s.config)
 
     if err != nil {
         return fmt.Errorf("%q: incorrect configuration file", filename)
