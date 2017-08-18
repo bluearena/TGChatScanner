@@ -55,7 +55,7 @@ func (s *Service) Run() error {
 
     db, err := modelManager.ConnectToDB(s.config["db"])
 
-    api := clarifaiApi.NewClarifaiApi(clarifaiApi.ApiKey)
+	api := clarifaiApi.NewClarifaiApi(s.config["clarifai"]["api_key"].(string))
 
 	workers_n, ok := s.config["server"]["workers"].(int)
 
