@@ -1,12 +1,12 @@
 package requestHandler
 
 import (
-	"net/http"
-	"log"
-	"github.com/jinzhu/gorm"
-	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	"context"
+	"github.com/jinzhu/gorm"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
+	"github.com/zwirec/TGChatScanner/clarifaiApi"
+	"log"
+	"net/http"
 )
 
 type RequestHandler struct {

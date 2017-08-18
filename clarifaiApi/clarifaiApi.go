@@ -18,8 +18,8 @@ type ClarifaiApi struct {
 
 var api *ClarifaiApi = nil
 
-func GetApiInstance() *ClarifaiApi{
-	if api != nil{
+func GetApiInstance() *ClarifaiApi {
+	if api != nil {
 		return api
 	}
 	return NewClarifaiApi(apiUrl)

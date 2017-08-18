@@ -1,8 +1,8 @@
 package requestHandler
 
 import (
-	"golang.org/x/crypto/bcrypt"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 )
 
@@ -20,7 +20,7 @@ func registerUser(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func loginUser(w http.ResponseWriter, req *http.Request)  {
+func loginUser(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(w, "users.login")
 }
 
