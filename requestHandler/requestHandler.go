@@ -15,12 +15,21 @@ type RequestHandler struct {
 }
 
 type AppContext struct {
+<<<<<<< HEAD
 	Db            *gorm.DB
 	Downloaders   *FileDownloaderPool
 	PhotoHandlers *PhotoHandlersPool
 	CfApi         *clarifaiApi.ClarifaiApi
 	Cache         *MemoryCache
 	Logger        *log.Logger
+=======
+    Db            *gorm.DB
+    Downloaders   *FileDownloadersPool
+    PhotoHandlers *PhotoHandlersPool
+    CfApi         *clarifaiApi.ClarifaiApi
+    Cache         *MemoryCache
+    Logger        *log.Logger
+>>>>>>> 695fb6bbd05ea59c0c22028f23308d6b69a14f19
 }
 
 type appContext string
