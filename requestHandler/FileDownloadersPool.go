@@ -6,11 +6,13 @@ import (
     "os"
     "io"
     "github.com/zwirec/TGChatScanner/TGBotApi"
+    "sync"
 )
 
-type DownloadPromise struct {
-    Done     chan bool
+type DownloadTask struct {
+    wg       sync.WaitGroup
     FileInfo FileDownloadRequest
+    Result   bool
 }
 
 type FileDownloadRequest struct {
@@ -18,60 +20,57 @@ type FileDownloadRequest struct {
     LocalPath string
 }
 
-type FileDownloaderPool struct {
-    promises      chan DownloadPromise
+type FileDownloadersPool struct {
+    wg            sync.WaitGroup
+    tasks         chan *DownloadTask
     WorkersNumber int
 }
 
-func NewFileDownloaderPool(workersNumber int, queueSize int) *FileDownloaderPool {
-    urls := make(chan DownloadPromise, queueSize)
-    pool := &FileDownloaderPool{promises: urls, WorkersNumber: workersNumber}
-    pool.init()
+func NewFileDownloaderPool(workersNumber int, queueSize int) *FileDownloadersPool {
+    tasks := make(chan *DownloadTask, queueSize)
+    pool := &FileDownloadersPool{tasks: tasks, WorkersNumber: workersNumber}
     return pool
 }
 
-func (fd *FileDownloaderPool) RequestDownloading(promise DownloadPromise) {
-    fd.promises <- promise
+func (fd *FileDownloadersPool) RequestDownloading(task *DownloadTask) {
+    fd.tasks <- task
 }
 
-func (fd *FileDownloaderPool) Stop() {
-    close(fd.promises)
+func (fd *FileDownloadersPool) Stop() {
+    close(fd.tasks)
+    fd.wg.Wait()
 }
 
-func (fd *FileDownloaderPool) init() {
+func (fd *FileDownloadersPool) Run() {
     for i := 0; i < fd.WorkersNumber; i++ {
-        go fileDownloader(fd.promises)
+        fd.wg.Add(1)
+        go fd.runDownloader(fd.tasks)
     }
+    fd.wg.Done()
 }
 
-func fileDownloader(promises chan DownloadPromise) {
-    for promise := range promises {
-        defer close(promise.Done)
-        downloadUrl := TGBotApi.EncodeDownloadUrl(promise.FileInfo.Url)
+func (p *FileDownloadersPool) runDownloader(tasks chan *DownloadTask) {
+    for task := range tasks {
+        defer task.wg.Done()
+        downloadUrl := TGBotApi.EncodeDownloadUrl(task.FileInfo.Url)
         response, err := http.Get(downloadUrl)
         defer response.Body.Close()
         if err != nil {
-            log.Printf("File download failed on %s: %s", promise.FileInfo.Url, err)
-            promise.Done <- false
+            log.Printf("File download failed on %s: %s", task.FileInfo.Url, err)
             return
         }
-
-        out, err := os.Create(promise.FileInfo.LocalPath)
+        out, err := os.Create(task.FileInfo.LocalPath)
         if err != nil {
-            log.Printf("File creation failed on %s: %s", promise.FileInfo.LocalPath, err)
-            promise.Done <- false
+            log.Printf("File creation failed on %s: %s", task.FileInfo.LocalPath, err)
             return
         }
-
         defer out.Close()
         _, err = io.Copy(out, response.Body)
         if err != nil {
-            log.Printf("File write failed on %s: %s", promise.FileInfo.LocalPath, err)
-            promise.Done <- false
+            log.Printf("File write failed on %s: %s", task.FileInfo.LocalPath, err)
             return
         }
-
-        //TODO: Save file to database
-        promise.Done <- true
+        task.Result = true
     }
+    p.wg.Done()
 }
