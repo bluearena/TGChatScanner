@@ -8,7 +8,6 @@ import (
 	"github.com/zwirec/TGChatScanner/requestHandler"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -80,27 +79,15 @@ func (s *Service) Run() error {
 	s.rAPIHandler.SetAppContext(&context)
 	s.rAPIHandler.RegisterHandlers()
 
-	s.srv = &http.Server{Handler: s.rAPIHandler}
+	s.srv = &http.Server{Addr: ":" + s.config["server"]["port"].(string), Handler: s.rAPIHandler}
 
 	var wg sync.WaitGroup
 
 	wg.Add(1)
 
 	go func() {
-		defer wg.Done()
-
-		l, err := net.Listen("unix", s.config["server"]["socket"].(string))
-		if err != nil {
-			fmt.Println(err)
-			wg.Done()
-		}
-		log.Println("Socket opened")
-		defer os.Remove(s.config["server"]["socket"].(string))
-		defer l.Close()
-
-		log.Println("Server started")
-		if err := s.srv.Serve(l); err != nil {
-			fmt.Println(err)
+		//defer wg.Done()
+		if err := s.srv.ListenAndServe(); err != nil {
 			wg.Done()
 		}
 	}()
