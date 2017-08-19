@@ -7,11 +7,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"log"
 )
 
 func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
-	logger := req.Context().Value(loggerContextKey).(AppContext).Logger
+	logger := req.Context().Value(loggerContextKey).(log.Logger)
 	if err != nil {
 		logger.Printf("Error during handling request on %s : %s", req.URL.String(), err)
 		return
