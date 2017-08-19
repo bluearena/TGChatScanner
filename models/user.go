@@ -6,4 +6,5 @@ type User struct {
 	Username  string        `gorm:"size:64"`
 	Password  string        `gorm:"type:varchar(128)"`
 	Email     string        `gorm:"unique"`
+	//Chat []Chat				`gorm:"many2many:users_chats;"`
 }
