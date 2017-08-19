@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	"github.com/zwirec/TGChatScanner/modelManager"
 	"github.com/zwirec/TGChatScanner/requestHandler"
@@ -14,7 +15,6 @@ import (
 	"os/user"
 	"sync"
 	"syscall"
-	"github.com/zwirec/TGChatScanner/TGBotApi"
 )
 
 type Config map[string]map[string]interface{}
@@ -110,6 +110,12 @@ func (s *Service) Run() error {
 			s.logger.Println(err)
 			wg.Done()
 		}
+
+		if err := os.Chmod(s.config["server"]["socket"].(string), 0777); err != nil {
+			s.logger.Println(err)
+			wg.Done()
+		}
+
 		s.logger.Println("Socket opened")
 		defer os.Remove(s.config["server"]["socket"].(string))
 		defer l.Close()
