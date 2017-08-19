@@ -14,6 +14,7 @@ import (
 	"os/user"
 	"sync"
 	"syscall"
+	"github.com/zwirec/TGChatScanner/TGBotApi"
 )
 
 type Config map[string]map[string]interface{}
@@ -68,7 +69,9 @@ func (s *Service) Run() error {
 		return err
 	}
 
-	api := clarifaiApi.NewClarifaiApi(s.config["clarifai"]["api_key"].(string))
+	clApi := clarifaiApi.NewClarifaiApi(s.config["clarifai"]["api_key"].(string))
+
+	botApi := TGBotApi.NewBotApi(s.config["tg_bot_api"]["token"].(string))
 
 	workers_n, ok := s.config["server"]["workers"].(int)
 
@@ -84,7 +87,8 @@ func (s *Service) Run() error {
 		Db:            db,
 		Downloaders:   fdp,
 		PhotoHandlers: php,
-		CfApi:         api,
+		BotApi:        botApi,
+		CfApi:         clApi,
 		Cache:         &cache,
 		Logger:        s.logger,
 	}
