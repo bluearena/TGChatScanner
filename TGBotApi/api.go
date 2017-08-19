@@ -17,44 +17,54 @@ const (
 	TGDownloadUrl = "https://api.telegram.org/file/bot"
 )
 
-func BuildGetUrl(method string, params *url.Values) string {
-	buff := buildApiUrl(method)
+type BotApi struct {
+	Token string
+}
+
+
+func NewBotApi(token string) *BotApi{
+	return &BotApi{Token : token}
+}
+
+
+func (api *BotApi) BuildGetUrl(method string, params *url.Values) string {
+	buff := api.buildApiUrl(method)
 	buff.WriteString("?")
 	buff.WriteString(params.Encode())
 	return buff.String()
 }
 
-func EncodrApiUrl(method string) string {
-	buff := buildApiUrl(method)
+func (api *BotApi) EncodrApiUrl(method string) string {
+	buff := api.buildApiUrl(method)
 	return buff.String()
 }
 
-func EncodeDownloadUrl(filePath string) string {
+func(api *BotApi) EncodeDownloadUrl(filePath string) string {
 	var buff bytes.Buffer
 	buff.WriteString(TGDownloadUrl)
-	buff.WriteString(botToken())
+	buff.WriteString(api.Token)
 	buff.WriteString("/")
 	buff.WriteString(filePath)
 	return buff.String()
 }
 
-func SendGetToApi(method string, params *url.Values) (*http.Response, error) {
-	reqUrl := BuildGetUrl(method, params)
+func (api *BotApi) SendGetToApi(method string, params *url.Values) (*http.Response, error) {
+	reqUrl := api.BuildGetUrl(method, params)
 	response, err := http.Get(reqUrl)
 	return response, err
 }
 
-func SendPostToApi(method string, contentType string, buffer *bytes.Buffer) (*http.Response, error) {
-	reqUrl := EncodrApiUrl(method)
+func (api *BotApi) SendPostToApi(method string, contentType string, buffer *bytes.Buffer) (*http.Response, error) {
+	reqUrl := api.EncodrApiUrl(method)
 	response, err := http.Post(reqUrl, contentType, buffer)
 	return response, err
 }
 
-func PrepareFile(fileId string) (File, error) {
+func (api *BotApi) PrepareFile(fileId string) (File, error) {
 	params := url.Values{}
 	params.Add("file_id", fileId)
 
-	response, err := SendGetToApi("upload.GetFile", &params)
+	response, err := api.SendGetToApi("upload.GetFile", &params)
 	if err != nil {
 		//TODO: Parse error
 		return File{}, err
@@ -74,7 +84,7 @@ func PrepareFile(fileId string) (File, error) {
 	return result, nil
 }
 
-func SetWebhook(url string, certPath string, maxConn int, allowedUpdates string) error {
+func (api *BotApi) SetWebhook(url string, certPath string, maxConn int, allowedUpdates string) error {
 
 	bodyBuffer := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuffer)
@@ -107,23 +117,15 @@ func SetWebhook(url string, certPath string, maxConn int, allowedUpdates string)
 	contentType := bodyWriter.FormDataContentType()
 	bodyWriter.Close()
 
-	resp, err := SendPostToApi("setWebhook", contentType, bodyBuffer)
+	resp, err := api.SendPostToApi("setWebhook", contentType, bodyBuffer)
 	defer resp.Body.Close()
 	return err
 }
 
-func GetWebhookUrl() string {
-	return "/" + botToken()
-}
-
-func botToken() string {
-	return os.Getenv("BOTACCESS")
-}
-
-func buildApiUrl(method string) *bytes.Buffer {
+func (api *BotApi) buildApiUrl(method string) *bytes.Buffer {
 	var buff bytes.Buffer
 	buff.WriteString(TGApiUrl)
-	buff.WriteString(botToken())
+	buff.WriteString(api.Token)
 	buff.WriteString("/")
 	buff.WriteString(method)
 	return &buff

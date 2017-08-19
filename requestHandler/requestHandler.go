@@ -18,6 +18,7 @@ type AppContext struct {
 	Downloaders   *FileDownloadersPool
 	PhotoHandlers *PhotoHandlersPool
 	CfApi         *clarifaiApi.ClarifaiApi
+	BotApi        *TGBotApi.BotApi
 	Cache         *MemoryCache
 	Logger        *log.Logger
 }
@@ -42,7 +43,7 @@ func (r *RequestHandler) RegisterHandlers() {
 	r.mux.Handle("/api/v1/subs.remove", middleware(http.HandlerFunc(removeSubs)))
 	r.mux.Handle("/api/v1/chats.get", middleware(http.HandlerFunc(getChats)))
 	r.mux.Handle("/api/v1/tags.get", middleware(http.HandlerFunc(getTags)))
-	r.mux.Handle(TGBotApi.GetWebhookUrl(), middleware(http.HandlerFunc(BotUpdateHanlder)))
+	r.mux.Handle("/" + appContext.BotApi.Token, middleware(http.HandlerFunc(BotUpdateHanlder)))
 }
 
 func (r *RequestHandler) SetAppContext(context *AppContext) {
