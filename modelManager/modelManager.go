@@ -24,8 +24,8 @@ func ConnectToDB(dbinfo map[string]interface{}) (*gorm.DB, error) {
 func InitDB(db *gorm.DB) {
 	db.LogMode(true)
 	//db.AutoMigrate(&models.User{}, &models.Session{}, &models.Chat{}, &models.Tag{}, models.Image{})
-	db.CreateTable(&models.User{}, &models.Session{}, &models.Chat{}, &models.Tag{}, models.Image{})
-	db.CreateTable(&models.User_Chat{})
+	db.AutoMigrate(&models.User{}, &models.Session{}, &models.Chat{}, &models.Tag{}, models.Image{})
+	db.AutoMigrate(&models.User_Chat{})
 	db.Model(&models.Session{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
 	db.Model(&models.Image{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
 	db.Model(&models.User_Chat{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
