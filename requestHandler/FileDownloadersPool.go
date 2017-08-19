@@ -1,7 +1,6 @@
 package requestHandler
 
 import (
-	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"io"
 	"log"
 	"net/http"
