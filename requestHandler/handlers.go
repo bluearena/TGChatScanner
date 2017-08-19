@@ -5,19 +5,45 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"log"
+	"encoding/json"
+	"github.com/zwirec/TGChatScanner/models"
 )
 
 func registerUser(w http.ResponseWriter, req *http.Request) {
 
-	req.ParseForm()
-	data := req.PostForm
-	hash, err := bcrypt.GenerateFromPassword([]byte(data["password"][0]), bcrypt.DefaultCost)
-	logger := req.Context().Value(loggerContextKey).(*log.Logger)
-	if err != nil {
-		logger.Println(err)
+	decoder := json.NewDecoder(req.Body)
+
+	var values map[string]interface{}
+
+	if err := decoder.Decode(&values); err != nil {
+		writeResponse(w, "Incorrect JSON\n", http.StatusBadRequest)
+		return
 	}
 
-	fmt.Fprintf(w, "Hash to store: %s", string(hash))
+	if !validateRegParam(values) {
+		writeResponse(w, "Incorrect params\n", http.StatusBadRequest)
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(values["password"].(string)), bcrypt.DefaultCost)
+
+	if err != nil {
+		writeResponse(w, nil, http.StatusInternalServerError)
+	}
+
+	logger := req.Context().Value(loggerContextKey).(*log.Logger)
+
+	user := models.User{Username: values["username"].(string),
+		Password: string(hash),
+		Email: values["email"].(string)}
+
+	_, err = user.Register(appContext.Db)
+
+	if err != nil {
+		logger.Println(err)
+		writeResponse(w, nil, http.StatusInternalServerError)
+		return
+	}
 	return
 }
 
@@ -55,4 +81,23 @@ func removeSubs(w http.ResponseWriter, req *http.Request) {
 	//TODO
 	fmt.Fprint(w, "subs.remove")
 	return
+}
+
+func validateRegParam(values map[string]interface{}) (ok bool) {
+	if values["username"] == nil || values["password"] == nil || values["email"] == nil {
+		return false
+	}
+	return true
+}
+
+func writeResponse(w http.ResponseWriter, data interface{}, status int) error {
+	w.WriteHeader(status)
+	if data != nil {
+		_, err := fmt.Fprint(w, data)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
