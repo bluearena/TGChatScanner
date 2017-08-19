@@ -1,14 +1,14 @@
 package TGBotApi
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"io/ioutil"
+	"mime/multipart"
+	"net/http"
 	"net/url"
 	"os"
-	"net/http"
-	"bytes"
-	"io/ioutil"
-	"encoding/json"
-	"mime/multipart"
-	"io"
 	"strconv"
 )
 

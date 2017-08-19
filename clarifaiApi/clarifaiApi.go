@@ -10,20 +10,10 @@ import (
 )
 
 const apiUrl = "https://api.clarifai.com/v2/models/aaa03c23b3724a16a56b629203edc62c/outputs"
-const ApiKey = "aaa03c23b3724a16a56b629203edc62c"
 
 type ClarifaiApi struct {
 	httpClient *http.Client
 	apiKey     string
-}
-
-var api *ClarifaiApi = nil
-
-func GetApiInstance() *ClarifaiApi{
-	if api != nil{
-		return api
-	}
-	return NewClarifaiApi(apiUrl)
 }
 
 func NewClarifaiApi(apiKey string) *ClarifaiApi {
