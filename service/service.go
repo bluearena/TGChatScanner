@@ -69,6 +69,8 @@ func (s *Service) Run() error {
 		return err
 	}
 
+	modelManager.InitDB(db)
+
 	clApi := clarifaiApi.NewClarifaiApi(s.config["clarifai"]["api_key"].(string))
 
 	botApi := TGBotApi.NewBotApi(s.config["tg_bot_api"]["token"].(string))
