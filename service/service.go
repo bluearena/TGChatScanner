@@ -64,7 +64,7 @@ func (s *Service) Run() error {
 	}
     fdp := requestHandler.NewFileDownloaderPool(workers_n, 100)
 
-    php := requestHandler.NewPhotoHandlersPool(10, 100)
+    php := requestHandler.NewPhotoHandlersPool(workers_n, 100)
 
     cache := requestHandler.MemoryCache{}
     context := requestHandler.AppContext{
