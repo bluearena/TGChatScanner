@@ -41,7 +41,11 @@ func (dp *DeforkersPool) defork(){
 		case in1 := <- dp.In1:
 			out, err := dp.In1Caster(in1)
 			if err != nil{
-				dp.Out <- out
+				select {
+					case dp.Out <- out:
+					case <- dp.Done:
+					return
+				}
 			}
 			continue
 		case in2 := <- dp.In2:
