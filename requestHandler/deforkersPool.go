@@ -5,18 +5,18 @@ import "sync"
 type CompleteFile FileLink
 
 type DeforkersPool struct {
-	In1 chan *DownloadedFile
-	In2 chan *RecognizedPhoto
-	Out chan *CompleteFile
-	In1Caster FromIn1
-	In2Caster FromIn2
-	Done chan struct{}
-	WorkersNumber int
+	In1              chan *DownloadedFile
+	In2              chan *RecognizedPhoto
+	Out              chan *CompleteFile
+	DeforkDownloaded FromDownloadedToComplete
+	DeforkRecognized FromRecognizedToComplete
+	Done             chan struct{}
+	WorkersNumber    int
 }
 
-type FromIn1 func(*DownloadedFile)(*CompleteFile, error)
+type FromDownloadedToComplete func(*DownloadedFile)(*CompleteFile, error)
 
-type FromIn2 func(*RecognizedPhoto)(*CompleteFile, error)
+type FromRecognizedToComplete func(*RecognizedPhoto)(*CompleteFile, error)
 
 func (dp *DeforkersPool) Run(queueSize int) chan *CompleteFile{
 	dp.Out = make(chan *CompleteFile, queueSize)
@@ -39,7 +39,7 @@ func (dp *DeforkersPool) defork(){
 	for{
 		select {
 		case in1 := <- dp.In1:
-			out, err := dp.In1Caster(in1)
+			out, err := dp.DeforkDownloaded(in1)
 			if err != nil{
 				select {
 					case dp.Out <- out:
@@ -49,7 +49,7 @@ func (dp *DeforkersPool) defork(){
 			}
 			continue
 		case in2 := <- dp.In2:
-			out, err := dp.In2Caster(in2)
+			out, err := dp.DeforkRecognized(in2)
 			if err != nil{
 				select {
 					case dp.Out <- out:

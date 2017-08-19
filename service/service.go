@@ -85,7 +85,14 @@ func (s *Service) Run() error {
 	fp := &requestHandler.FilePreparatorsPool{In: dr, Done: poolStoper, WorkersNumber: workers_n}
 	fpOut := fp.Run(workers_n * 2)
 
-	forker := &requestHandler.ForkersPool{In: fpOut, Done: poolStoper, WorkersNumber: workers_n}
+	forker := &requestHandler.ForkersPool{
+		In:             fpOut,
+		Done:           poolStoper,
+		WorkersNumber:  workers_n,
+		ForkToFileInfo: requestHandler.CastToFileInfo,
+		ForkToFileLink: requestHandler.CastToFileLink,
+	}
+
 	fdIn, prIn := forker.Run(workers_n, workers_n)
 
 	fd := &requestHandler.FileDownloadersPool{In: fdIn, Done: poolStoper, WorkersNumber: workers_n}
@@ -94,7 +101,14 @@ func (s *Service) Run() error {
 	pr := &requestHandler.PhotoRecognizersPool{In: prIn, Done: poolStoper, WorkersNumber: workers_n}
 	prOut := pr.Run(workers_n)
 
-	deforker := &requestHandler.DeforkersPool{In1: fdOut, In2: prOut, WorkersNumber: workers_n}
+	deforker := &requestHandler.DeforkersPool{
+		In1:              fdOut,
+		In2:              prOut,
+		WorkersNumber:    workers_n,
+		DeforkDownloaded: requestHandler.CastFromDownloadedFile,
+		DeforkRecognized: requestHandler.CastFromRecognizedPhoto,
+	}
+
 	dbsIn := deforker.Run(workers_n * 2)
 
 	dbs := &requestHandler.DbStoragersPool{In: dbsIn}

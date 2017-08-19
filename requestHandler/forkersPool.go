@@ -8,18 +8,18 @@ type FileInfo struct {
 }
 
 type ForkersPool struct {
-	In            chan *PreparedFile
-	Out1          chan *FileLink
-	Out2          chan *FileInfo
-	Done          chan struct{}
-	Caster1       ToOut1
-	Caster2       ToOut2
-	WorkersNumber int
+	In             chan *PreparedFile
+	Out1           chan *FileLink
+	Out2           chan *FileInfo
+	Done           chan struct{}
+	ForkToFileLink InToFileLink
+	ForkToFileInfo InToFileInfo
+	WorkersNumber  int
 }
 
-type ToOut1 func(*PreparedFile) (*FileLink, error)
+type InToFileLink func(*PreparedFile) (*FileLink, error)
 
-type ToOut2 func(result *PreparedFile) (*FileInfo, error)
+type InToFileInfo func(result *PreparedFile) (*FileInfo, error)
 
 func (fp *ForkersPool) Run(out1queue int, out2queue int) (out1 chan *FileLink, out2 chan *FileInfo) {
 	fp.Out1 = make(chan *FileLink, out1queue)
@@ -42,8 +42,12 @@ func (fp *ForkersPool) Run(out1queue int, out2queue int) (out1 chan *FileLink, o
 
 func (fp *ForkersPool) fork() {
 	for in := range fp.In {
-		out1, err1 := fp.Caster1(in)
-		out2, err2 := fp.Caster2(in)
+		if in.Error != nil{
+			appContext.Logger.Printf("Invalid file recieved after preparation: %s", in.Error)
+			continue
+		}
+		out1, err1 := fp.ForkToFileLink(in)
+		out2, err2 := fp.ForkToFileInfo(in)
 		if err1 == nil && err2 == nil {
 			select {
 			case fp.Out1 <- out1:
