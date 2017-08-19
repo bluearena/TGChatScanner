@@ -36,7 +36,7 @@ type User struct {
 	FirstName    string `json:"first_name"`
 	LastName     string `json:"last_name,omitempty"`
 	UserName     string `json:"user_name, omitempty"`
-	LanguageCode int `json:"language_code, omitempty"`
+	LanguageCode string `json:"language_code, omitempty"`
 }
 
 type Chat struct {
