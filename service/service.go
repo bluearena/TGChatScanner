@@ -80,19 +80,51 @@ func (s *Service) Run() error {
 	if !ok {
 		workers_n = 10
 	}
-    fdp := requestHandler.NewFileDownloaderPool(workers_n, 100)
 
-    php := requestHandler.NewPhotoHandlersPool(workers_n, 100)
+	dr := make(chan *requestHandler.FileBasic, workers_n*2)
+	poolStoper := make(chan struct{})
+
+	fp := &requestHandler.FilePreparatorsPool{In: dr, Done: poolStoper, WorkersNumber: workers_n}
+	fpOut := fp.Run(workers_n * 2)
+
+	forker := &requestHandler.ForkersPool{
+		In:             fpOut,
+		Done:           poolStoper,
+		WorkersNumber:  workers_n,
+		ForkToFileInfo: requestHandler.CastToFileInfo,
+		ForkToFileLink: requestHandler.CastToFileLink,
+	}
+
+	fdIn, prIn := forker.Run(workers_n, workers_n)
+
+	fd := &requestHandler.FileDownloadersPool{In: fdIn, Done: poolStoper, WorkersNumber: workers_n}
+	fdOut := fd.Run(workers_n)
+
+	pr := &requestHandler.PhotoRecognizersPool{In: prIn, Done: poolStoper, WorkersNumber: workers_n}
+	prOut := pr.Run(workers_n)
+
+	deforker := &requestHandler.DeforkersPool{
+		In1:              fdOut,
+		In2:              prOut,
+		WorkersNumber:    workers_n,
+		DeforkDownloaded: requestHandler.CastFromDownloadedFile,
+		DeforkRecognized: requestHandler.CastFromRecognizedPhoto,
+	}
+
+	dbsIn := deforker.Run(workers_n * 2)
+
+	dbs := &requestHandler.DbStoragersPool{In: dbsIn}
+	dbs.Run()
 
 	cache := requestHandler.MemoryCache{}
 	context := requestHandler.AppContext{
-		Db:            db,
-		Downloaders:   fdp,
-		PhotoHandlers: php,
-		BotApi:        botApi,
-		CfApi:         clApi,
-		Cache:         &cache,
-		Logger:        s.logger,
+		Db:               db,
+		DownloadRequests: dr,
+		PoolStop:         poolStoper,
+		BotApi:           botApi,
+		CfApi:            clApi,
+		Cache:            &cache,
+		Logger:           s.logger,
 	}
 
 	s.rAPIHandler.SetAppContext(&context)
@@ -106,7 +138,7 @@ func (s *Service) Run() error {
 
 	go func() {
 		defer wg.Done()
-
+		defer close(poolStoper)
 		l, err := net.Listen("unix", s.config["server"]["socket"].(string))
 		if err != nil {
 			s.logger.Println(err)
