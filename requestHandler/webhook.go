@@ -24,9 +24,16 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 		logger.Printf("Error during unmarshaling request on %s : %s", req.URL.String(), err)
 		return
 	}
-	if len(update.Message.Photo) != 0 {
-		appContext.PhotoHandlers.RequestPhotoHandling(&update.Message, appContext.CfApi)
-
+	if pl := len(update.Message.Photo);pl != 0 {
+		photo := update.Message.Photo[pl - 1]
+		ctx := map[string]interface{}{}
+		ctx["From"] = update.Message.From
+		fb := &FileBasic{
+			FileId:photo.FileId,
+			Type:"photo",
+			Context:ctx,
+		}
+		appContext.DownloadRequests <- fb
 	} else if update.Message.Entities[0].Type == "bot_command" {
 		if err := AddSubsription(update.Message, appContext.Cache); err != nil {
 			logger.Println(err)
