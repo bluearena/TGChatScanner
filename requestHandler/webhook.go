@@ -20,8 +20,6 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 
 	var update TGBotApi.Update
 	err = json.Unmarshal(body, &update)
-	toLog,_ := json.MarshalIndent(body,"","      ")
-	logger.Printf("%+v", toLog)
 	if err != nil {
 		logger.Printf("Error during unmarshaling request on %s : %s", req.URL.String(), err)
 		return
