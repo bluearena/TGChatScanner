@@ -84,41 +84,47 @@ func (api *BotApi) PrepareFile(fileId string) (File, error) {
 	return result, nil
 }
 
-func (api *BotApi) SetWebhook(url string, certPath string, maxConn int, allowedUpdates string) error {
 
+func (api *BotApi) SetWebhook(url string, certPath string, maxConn int, allowedUpdates string) error{
+	reqBody, writer := api.createWebhookRequestBody(url, maxConn, allowedUpdates)
+	defer writer.Close()
+	if certPath != "" {
+		err := api.loadLocalCertificate(certPath, reqBody, writer)
+		if err != nil {
+			return err
+		}
+	}
+
+	contentType := writer.FormDataContentType()
+	resp, err := api.SendPostToApi("setWebhook", contentType, reqBody)
+	defer resp.Body.Close()
+	return err
+}
+
+func (api *BotApi) createWebhookRequestBody(url string, maxConn int, allowedUpdates string)  (*bytes.Buffer, *multipart.Writer) {
 	bodyBuffer := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuffer)
-
-	fileWriter, err := bodyWriter.CreateFormFile("certificate", certPath)
-
-	if err != nil {
-		bodyWriter.Close()
-		return err
-	}
-
-	file, err := os.Open(certPath)
-	defer file.Close()
-
-	if err != nil {
-		bodyWriter.Close()
-		return err
-	}
-
-	_, err = io.Copy(fileWriter, file)
-	if err != nil {
-		bodyWriter.Close()
-		return err
-	}
 
 	bodyWriter.WriteField("allowed_updates", allowedUpdates)
 	bodyWriter.WriteField("max_connections", strconv.Itoa(maxConn))
 	bodyWriter.WriteField("url", url)
 
-	contentType := bodyWriter.FormDataContentType()
-	bodyWriter.Close()
+	return bodyBuffer, bodyWriter
+}
 
-	resp, err := api.SendPostToApi("setWebhook", contentType, bodyBuffer)
-	defer resp.Body.Close()
+func (api *BotApi) loadLocalCertificate(certPath string, buff *bytes.Buffer, wr *multipart.Writer) error{
+	fileWriter, err := wr.CreateFormFile("certificate", certPath)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Open(certPath)
+	if err != nil {
+		return  err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(fileWriter, file)
 	return err
 }
 
