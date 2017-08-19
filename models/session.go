@@ -2,7 +2,7 @@ package models
 
 type Session struct {
 	//gorm.Model
-	User User
-	UserID uint
+	ID	uint 	`gorm:"primary_key;AUTO_INCREMENT"`
+	UserID   	uint
 	SessionID string
 }

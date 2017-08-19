@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/zwirec/TGChatScanner/models"
 )
 
 func ConnectToDB(dbinfo map[string]interface{}) (*gorm.DB, error) {
@@ -18,4 +19,15 @@ func ConnectToDB(dbinfo map[string]interface{}) (*gorm.DB, error) {
 		return nil, err
 	}
 	return db, err
+}
+
+func InitDB(db *gorm.DB) {
+	db.LogMode(true)
+	//db.AutoMigrate(&models.User{}, &models.Session{}, &models.Chat{}, &models.Tag{}, models.Image{})
+	db.CreateTable(&models.User{}, &models.Session{}, &models.Chat{}, &models.Tag{}, models.Image{})
+	db.CreateTable(&models.User_Chat{})
+	db.Model(&models.Session{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
+	db.Model(&models.Image{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
+	db.Model(&models.User_Chat{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
+	db.Model(&models.User_Chat{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
 }
