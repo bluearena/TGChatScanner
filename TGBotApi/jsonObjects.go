@@ -33,10 +33,10 @@ type PhotoSize struct {
 
 type User struct {
 	Id           int `json:"id"`
-	FirstName    int `json:"first_name"`
-	LastName     int `json:"last_name,omitempty"`
-	UserName     int `json:"user_name, omitempty"`
-	LanguageCode int `json:"language_code, omitempty"`
+	FirstName    string `json:"first_name"`
+	LastName     string `json:"last_name,omitempty"`
+	UserName     string `json:"user_name, omitempty"`
+	LanguageCode string `json:"language_code, omitempty"`
 }
 
 type Chat struct {
