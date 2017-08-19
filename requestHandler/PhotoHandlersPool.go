@@ -67,7 +67,7 @@ func (p *PhotoHandlersPool) Stop() {
 
 func (p *PhotoHandlersPool) runHandler(tasks chan *PhotoHandleTask) {
 	for task := range tasks {
-		fileInfo, err := TGBotApi.PrepareFile(task.Data.PhotoSize.FileId)
+		fileInfo, err := appContext.BotApi.PrepareFile(task.Data.PhotoSize.FileId)
 		if err != nil {
 			log.Printf("unable to download %s: %s", fileInfo.FileId, err)
 			return

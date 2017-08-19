@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	"github.com/zwirec/TGChatScanner/modelManager"
 	"github.com/zwirec/TGChatScanner/requestHandler"
@@ -15,6 +14,7 @@ import (
 	"os/user"
 	"sync"
 	"syscall"
+	"github.com/zwirec/TGChatScanner/TGBotApi"
 )
 
 type Config map[string]map[string]interface{}
@@ -37,17 +37,26 @@ func NewService() *Service {
 }
 
 func (s *Service) Run() error {
+	configUrl := os.Getenv("TGCHATSCANNER_REMOTE_CONFIG")
+	rc := true
 
-	usr, err := user.Current()
+	if configUrl == "" {
+		s.logger.Println("Using local config")
 
-	if err != nil {
-		s.logger.Println(err)
-		return err
+		rc = false
+		usr, err := user.Current()
+
+		if err != nil {
+			s.logger.Println(err)
+			return err
+		}
+
+		configUrl = usr.HomeDir + "/.config/tgchatscanner/config.json"
+	} else {
+		s.logger.Println("Using remote config")
 	}
 
-	configPath := usr.HomeDir + "/.config/tgchatscanner/config.json"
-
-	if err := s.parseConfig(configPath); err != nil {
+	if err := s.parseConfig(configUrl, rc); err != nil {
 		s.logger.Println(err)
 		return err
 	}
@@ -55,8 +64,14 @@ func (s *Service) Run() error {
 	s.signalProcessing()
 
 	db, err := modelManager.ConnectToDB(s.config["db"])
+	if err != nil {
+		s.logger.Println(err)
+		return err
+	}
 
-	api := clarifaiApi.NewClarifaiApi(s.config["clarifai"]["api_key"].(string))
+	clApi := clarifaiApi.NewClarifaiApi(s.config["clarifai"]["api_key"].(string))
+
+	botApi := TGBotApi.NewBotApi(s.config["tg_bot_api"]["token"].(string))
 
 	workers_n, ok := s.config["server"]["workers"].(int)
 
@@ -72,7 +87,8 @@ func (s *Service) Run() error {
 		Db:            db,
 		Downloaders:   fdp,
 		PhotoHandlers: php,
-		CfApi:         api,
+		BotApi:        botApi,
+		CfApi:         clApi,
 		Cache:         &cache,
 		Logger:        s.logger,
 	}
@@ -91,16 +107,16 @@ func (s *Service) Run() error {
 
 		l, err := net.Listen("unix", s.config["server"]["socket"].(string))
 		if err != nil {
-			fmt.Println(err)
+			s.logger.Println(err)
 			wg.Done()
 		}
-		log.Println("Socket opened")
+		s.logger.Println("Socket opened")
 		defer os.Remove(s.config["server"]["socket"].(string))
 		defer l.Close()
 
 		log.Println("Server started")
 		if err := s.srv.Serve(l); err != nil {
-			fmt.Println(err)
+			s.logger.Println(err)
 			wg.Done()
 		}
 	}()
@@ -109,21 +125,40 @@ func (s *Service) Run() error {
 	return nil
 }
 
-func (s *Service) parseConfig(filename string) error {
-	file, err := ioutil.ReadFile(filename)
+func (s *Service) parseConfig(url string, remote bool) error {
+	var configRaw []byte
 
-	if err != nil {
+	if remote {
+		res, err := http.Get(url)
+		if err != nil {
+			s.logger.Println(err)
+			return err
+		}
+
+		configRaw, err = ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		if err != nil {
+			s.logger.Println(err)
+			return err
+		}
+
+	} else {
+		var err error
+
+		configRaw, err = ioutil.ReadFile(url)
+		if err != nil {
+			s.logger.Println(err)
+			return err
+		}
+	}
+
+	if err := json.Unmarshal(configRaw, &s.config); err != nil {
+		s.logger.Println(err)
 		return err
 	}
 
-	if err = json.Unmarshal(file, &s.config); err != nil {
-		return err
-	}
-
-	if err != nil {
-		return fmt.Errorf("%q: incorrect configuration file", filename)
-	}
 	return nil
+
 }
 
 func (s *Service) signalProcessing() {

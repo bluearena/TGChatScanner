@@ -1,7 +1,6 @@
 package requestHandler
 
 import (
-	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"io"
 	"log"
 	"net/http"
@@ -52,7 +51,7 @@ func (fd *FileDownloadersPool) Run() {
 func (p *FileDownloadersPool) runDownloader(tasks chan *DownloadTask) {
 	for task := range tasks {
 		defer task.wg.Done()
-		downloadUrl := TGBotApi.EncodeDownloadUrl(task.FileInfo.Url)
+		downloadUrl := appContext.BotApi.EncodeDownloadUrl(task.FileInfo.Url)
 		response, err := http.Get(downloadUrl)
 		defer response.Body.Close()
 		if err != nil {
