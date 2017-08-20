@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"regexp"
 	"log"
-	"crypto/rand"
-	"encoding/base64"
 	"bytes"
 	"net/url"
 	"github.com/rs/xid"
@@ -53,7 +51,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 }
 
 func BotCommandRouter(message *TGBotApi.Message, logger *log.Logger) error {
-	r := regexp.MustCompile(`\/(start(?:group)|mystats)?\s*`)
+	r := regexp.MustCompile(`\/(start(?:group)?|mystats)?\s*`)
 	command := r.FindStringSubmatch(message.Text)
 	if len(command) == 0 {
 		return fmt.Errorf("unexpected command %s", message.Text)
