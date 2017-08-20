@@ -5,12 +5,10 @@ import (
 )
 
 type User struct {
-	//gorm.Model
-	ID       uint          `gorm:"primary_key;AUTO_INCREMENT"`
-	Username string        `gorm:"size:64"`
-	Password string        `gorm:"type:varchar(128)"`
-	Email    string        `gorm:"unique"`
-	//Chat []Chat				`gorm:"many2many:users_chats;"`
+	ID       uint   `gorm:"primary_key;AUTO_INCREMENT" json:"-"`
+	Username string `gorm:"size:64" json:"username"`
+	Password string `gorm:"type:varchar(128)" json:"-"`
+	Email    string `gorm:"unique" json:"email"`
 }
 
 func (u *User) Register(db *gorm.DB) (int64, error) {
@@ -19,4 +17,12 @@ func (u *User) Register(db *gorm.DB) (int64, error) {
 	} else {
 		return db.RowsAffected, nil
 	}
+}
+
+func (u *User) IsExists(db *gorm.DB) bool {
+	ok := db.Where(u).First(u).RowsAffected
+	if ok == 1 {
+		return true
+	}
+	return false
 }

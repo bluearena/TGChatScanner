@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	"github.com/zwirec/TGChatScanner/modelManager"
@@ -10,6 +11,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"os/user"
@@ -17,15 +19,36 @@ import (
 	"syscall"
 )
 
+var (
+	home      = os.Getenv("HOME")
+	configUrl = os.Getenv("TGCHATSCANNER_REMOTE_CONFIG")
+)
+
+func init() {
+	if home == "" {
+		u, err := user.Current()
+		if err != nil {
+			log.Fatal(err)
+		}
+		home := u.HomeDir
+		fmt.Fprint(ioutil.Discard, home)
+	}
+	if configUrl == "" {
+		configUrl = home + "/.config/tgchatscanner/config.json"
+	}
+}
+
 type Config map[string]map[string]interface{}
 
 //Service s
 type Service struct {
+	sock        net.Listener
 	mux         *http.ServeMux
 	srv         *http.Server
 	rAPIHandler *requestHandler.RequestHandler
 	config      Config
 	logger      *log.Logger
+	notifier    chan os.Signal
 }
 
 func NewService() *Service {
@@ -33,30 +56,13 @@ func NewService() *Service {
 		rAPIHandler: requestHandler.NewRequestHandler(),
 		mux:         http.NewServeMux(),
 		logger:      log.New(os.Stdout, "", log.LstdFlags),
+		notifier:    make(chan os.Signal),
 	}
 }
 
 func (s *Service) Run() error {
-	configUrl := os.Getenv("TGCHATSCANNER_REMOTE_CONFIG")
-	rc := true
 
-	if configUrl == "" {
-		s.logger.Println("Using local config")
-
-		rc = false
-		usr, err := user.Current()
-
-		if err != nil {
-			s.logger.Println(err)
-			return err
-		}
-
-		configUrl = usr.HomeDir + "/.config/tgchatscanner/config.json"
-	} else {
-		s.logger.Println("Using remote config")
-	}
-
-	if err := s.parseConfig(configUrl, rc); err != nil {
+	if err := s.parseConfig(configUrl); err != nil {
 		s.logger.Println(err)
 		return err
 	}
@@ -64,6 +70,7 @@ func (s *Service) Run() error {
 	s.signalProcessing()
 
 	db, err := modelManager.ConnectToDB(s.config["db"])
+
 	if err != nil {
 		s.logger.Println(err)
 		return err
@@ -82,6 +89,7 @@ func (s *Service) Run() error {
 	}
 
 	dr := make(chan *requestHandler.FileBasic, workers_n*2)
+
 	poolStoper := make(chan struct{})
 
 	fp := &requestHandler.FilePreparatorsPool{In: dr, Done: poolStoper, WorkersNumber: workers_n}
@@ -114,6 +122,7 @@ func (s *Service) Run() error {
 	dbsIn := deforker.Run(workers_n * 2)
 
 	dbs := &requestHandler.DbStoragersPool{In: dbsIn}
+
 	dbs.Run()
 
 	cache := requestHandler.MemoryCache{}
@@ -131,45 +140,42 @@ func (s *Service) Run() error {
 	s.rAPIHandler.RegisterHandlers()
 
 	s.srv = &http.Server{Handler: s.rAPIHandler}
-
+	defer close(poolStoper)
 	var wg sync.WaitGroup
-
 	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		defer close(poolStoper)
-		l, err := net.Listen("unix", s.config["server"]["socket"].(string))
-		if err != nil {
-			s.logger.Println(err)
-			wg.Done()
-		}
-
-		if err := os.Chmod(s.config["server"]["socket"].(string), 0777); err != nil {
-			s.logger.Println(err)
-			wg.Done()
-		}
-
-		s.logger.Println("Socket opened")
-		defer os.Remove(s.config["server"]["socket"].(string))
-		defer l.Close()
-
-		log.Println("Server started")
-		if err := s.srv.Serve(l); err != nil {
-			s.logger.Println(err)
-			wg.Done()
-		}
-	}()
-
+	go s.endpoint()
 	wg.Wait()
 	return nil
 }
 
-func (s *Service) parseConfig(url string, remote bool) error {
+func (s *Service) endpoint() (err error) {
+
+	s.sock, err = net.Listen("unix", s.config["server"]["socket"].(string))
+
+	if err != nil {
+		s.logger.Println(err)
+		s.notifier <- syscall.SIGINT
+	}
+	if err := os.Chmod(s.config["server"]["socket"].(string), 0777); err != nil {
+		s.logger.Println(err)
+		s.notifier <- syscall.SIGINT
+	}
+	s.logger.Println("Socket opened")
+	s.logger.Println("Server started")
+	if err := s.srv.Serve(s.sock); err != nil {
+		s.logger.Println(err)
+		s.notifier <- syscall.SIGINT
+	}
+	return nil
+}
+
+func (s *Service) parseConfig(_url string) error {
 	var configRaw []byte
 
-	if remote {
-		res, err := http.Get(url)
+	_, err := url.Parse(_url)
+
+	if err != nil {
+		res, err := http.Get(_url)
 		if err != nil {
 			s.logger.Println(err)
 			return err
@@ -184,8 +190,7 @@ func (s *Service) parseConfig(url string, remote bool) error {
 
 	} else {
 		var err error
-
-		configRaw, err = ioutil.ReadFile(url)
+		configRaw, err = ioutil.ReadFile(_url)
 		if err != nil {
 			s.logger.Println(err)
 			return err
@@ -202,9 +207,8 @@ func (s *Service) parseConfig(url string, remote bool) error {
 }
 
 func (s *Service) signalProcessing() {
-	c := make(chan os.Signal)
-	signal.Notify(c, syscall.SIGINT)
-	go s.handler(c)
+	signal.Notify(s.notifier, syscall.SIGINT)
+	go s.handler(s.notifier)
 }
 
 func (s *Service) handler(c chan os.Signal) {
@@ -212,6 +216,8 @@ func (s *Service) handler(c chan os.Signal) {
 		<-c
 		log.Print("Gracefully stopping...")
 		s.srv.Shutdown(nil)
+		s.sock.Close()
+		os.Remove(s.config["server"]["socket"].(string))
 		os.Exit(0)
 	}
 }
