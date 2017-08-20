@@ -7,6 +7,7 @@ import (
 	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	"github.com/zwirec/TGChatScanner/modelManager"
 	"github.com/zwirec/TGChatScanner/requestHandler"
+	memcache "github.com/patrickmn/go-cache"
 	"io/ioutil"
 	"log"
 	"net"
@@ -17,6 +18,7 @@ import (
 	"os/user"
 	"sync"
 	"syscall"
+	"time"
 )
 
 var (
@@ -127,9 +129,11 @@ func (s *Service) Run() error {
 	dbs := &requestHandler.DbStoragersPool{In: dbsIn, WorkersNumber: workers_n}
 	dbs.Run(s.poolsWG)
 
-	cache := requestHandler.NewMemoryCache()
+	cache := memcache.New(5 * time.Minute,10 * time.Minute)
+
 	imgPath := s.config["chatscanner"]["images_path"].(string)
 	os.MkdirAll(imgPath, os.ModePerm);
+
 	context := requestHandler.AppContext{
 		Db:               db,
 		DownloadRequests: dr,

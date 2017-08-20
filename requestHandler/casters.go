@@ -2,6 +2,7 @@ package requestHandler
 
 import (
 	"errors"
+	"github.com/patrickmn/go-cache"
 )
 
 var (
@@ -29,8 +30,8 @@ func CastFromDownloadedFile(df *DownloadedFile) (*CompleteFile, error) {
 		return nil, df.Error
 	}
 	fID := df.Link.Basics.FileId
-	exists := appContext.Cache.Add(fID, &df.Link)
-	if exists {
+	exists := appContext.Cache.Add(fID, &df.Link, cache.DefaultExpiration)
+	if exists != nil {
 		tags, _ := appContext.Cache.Get(fID)
 		df.Link.Basics.Context["tags"] = tags
 		link := (*CompleteFile)(&df.Link)
@@ -45,8 +46,8 @@ func CastFromRecognizedPhoto(rp *RecognizedPhoto) (*CompleteFile, error) {
 		return nil, rp.Error
 	}
 	fID := rp.FileId
-	exists := appContext.Cache.Add(fID, rp.Tags)
-	if exists {
+	exists := appContext.Cache.Add(fID, rp.Tags, cache.DefaultExpiration)
+	if exists != nil{
 		lk, _ := appContext.Cache.Get(fID)
 		link := lk.(*FileLink)
 		link.Basics.Context["tags"] = rp.Tags

@@ -7,6 +7,7 @@ import (
 	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	"log"
 	"net/http"
+	memcache "github.com/patrickmn/go-cache"
 )
 
 type RequestHandler struct {
@@ -18,7 +19,7 @@ type AppContext struct {
 	DownloadRequests chan *FileBasic
 	CfApi            *clarifaiApi.ClarifaiApi
 	BotApi           *TGBotApi.BotApi
-	Cache            *MemoryCache
+	Cache            *memcache.Cache
 	Logger           *log.Logger
 	ImagesPath       string
 }
