@@ -94,7 +94,7 @@ func BuildUserStatUrl(token string) string {
 	var buff bytes.Buffer
 	buff.WriteString(UserStatsUrl)
 	buff.WriteString("?")
-	var params url.Values
+	params := url.Values{}
 	params.Add("token", token)
 	buff.WriteString(params.Encode())
 	return buff.String()
