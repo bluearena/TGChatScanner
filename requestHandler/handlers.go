@@ -3,103 +3,87 @@ package requestHandler
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/rs/xid"
 	"github.com/zwirec/TGChatScanner/models"
-	"golang.org/x/crypto/bcrypt"
-	"log"
 	"net/http"
-	"time"
+	"net/url"
+	"strconv"
 )
 
-type ResponeJSON struct {
+type ResponseJSON struct {
 	Err   string      `json:"error,omitempty"`
 	Model interface{} `json:"entity,omitempty"`
 }
 
-func registerUser(w http.ResponseWriter, req *http.Request) {
+func middlewareLogin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		l := appContext.Logger
 
-	decoder := json.NewDecoder(req.Body)
+		if req.Method == "GET" {
+			values, err := url.ParseQuery(req.URL.RawQuery)
+			if err != nil {
 
-	var values map[string]interface{}
+				response := ResponseJSON{Err: "incorrect query rows",
+					Model: nil}
 
-	if err := decoder.Decode(&values); err != nil {
-		writeResponse(w, "Incorrect JSON\n", http.StatusBadRequest)
-		return
-	}
+				responseJSON, err := json.Marshal(response)
+				if err != nil {
+					writeResponse(w, string(responseJSON), http.StatusBadRequest)
+					l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusBadRequest)
+					return
+				} else {
+					l.Println(err)
+					return
+				}
+			}
+			result, ok := validateGETParams(values)
+			if !ok {
+				response := ResponseJSON{Err: "incorrect params",
+					Model: nil}
+				responseJSON, err := json.Marshal(response)
+				if err != nil {
+					writeResponse(w, string(responseJSON), http.StatusBadRequest)
+					l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusBadRequest)
+					return
+				} else {
+					l.Println(err)
+					return
+				}
+			}
 
-	if !validateRegParam(values) {
-		writeResponse(w, "Incorrect params\n", http.StatusBadRequest)
-		return
-	}
+			user_chat := models.User_Chat{UserID: uint64(result["user_id"]),
+				ChatID: uint64(result["chat_id"]),
+				Token:  string(result["token"]),
+			}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(values["password"].(string)), bcrypt.DefaultCost)
+			if !user_chat.Validate(appContext.Db) {
+				response := ResponseJSON{Err: "incorrect (user_id, chat_id) or tokens lifetime is expired",
+					Model: nil}
+				responseJSON, err := json.Marshal(response)
+				if err != nil {
+					writeResponse(w, string(responseJSON), http.StatusTeapot)
+					l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+					return
+				} else {
+					l.Println(err)
+					return
+				}
+			} else {
+				next.ServeHTTP(w, req)
+			}
 
-	if err != nil {
-		writeResponse(w, nil, http.StatusInternalServerError)
-	}
+		} else {
+			response := ResponseJSON{Err: "method not allowed",
+				Model: nil}
+			responseJSON, err := json.Marshal(response)
+			if err != nil {
+				writeResponse(w, string(responseJSON), http.StatusMethodNotAllowed)
+				return
+			} else {
+				l.Println(err)
+			}
+		}
 
-	logger := req.Context().Value(loggerContextKey).(*log.Logger)
-
-	user := models.User{Username: values["username"].(string),
-		Password: string(hash),
-		Email:    values["email"].(string)}
-
-	_, err = user.Register(appContext.Db)
-
-	if err != nil {
-		logger.Println(err)
-		writeResponse(w, nil, http.StatusInternalServerError)
-		return
-	}
-	return
-}
-
-func loginUser(w http.ResponseWriter, req *http.Request) {
-
-	decoder := json.NewDecoder(req.Body)
-
-	var values map[string]interface{}
-
-	if err := decoder.Decode(&values); err != nil {
-		resp := ResponeJSON{Err: "Incorrect JSON format", Model: nil}
-		response, _ := json.Marshal(resp)
-		writeResponse(w, string(response), http.StatusBadRequest)
-		return
-	}
-
-	if !validateLoginParams(values) {
-		resp := ResponeJSON{Err: "Invalid params", Model: nil}
-		response, _ := json.Marshal(resp)
-		writeResponse(w, string(response), http.StatusBadRequest)
-		return
-	}
-
-	user := models.User{Username: values["username"].(string)}
-
-	user.IsExists(appContext.Db)
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(values["password"].(string))); err != nil {
-		resp := ResponeJSON{Err: "Invalid username/password", Model: nil}
-		response, _ := json.Marshal(resp)
-		writeResponse(w, string(response), http.StatusInternalServerError)
-		return
-	} else {
-		session_id := xid.New().String()
-		cookie := http.Cookie{Name: "session_id", Value: session_id, Expires: time.Now().Add(time.Hour)}
-		http.SetCookie(w, &cookie)
-
-		session := models.Session{UserID: user.ID, SessionID: session_id}
-
-		session.Store(appContext.Db)
-
-		resp := ResponeJSON{Err: "error",
-			Model: user}
-		response, _ := json.Marshal(resp)
-
-		fmt.Fprint(w, string(response))
-		return
-	}
-	return
+	})
 }
 
 func getImages(w http.ResponseWriter, req *http.Request) {
@@ -134,11 +118,21 @@ func removeSubs(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func validateRegParam(values map[string]interface{}) (ok bool) {
-	if values["username"] == nil || values["password"] == nil || values["email"] == nil {
-		return false
+func validateGETParams(values url.Values) (map[string]interface{}, bool) {
+	if values["user_id"] == nil || values["chat_id"] == nil || values["token"] == nil {
+		return nil, false
 	}
-	return true
+	result := map[string]interface{}{}
+
+	var err error
+	result["user_id"], err = strconv.ParseUint(values["user_id"][0], 10, 64)
+	result["chat_id"], err = strconv.ParseUint(values["client_id"][0], 10, 64)
+
+	if err != nil {
+		return nil, false
+	}
+	result["token"] = values["token"]
+	return result, false
 }
 
 func validateLoginParams(values map[string]interface{}) (ok bool) {

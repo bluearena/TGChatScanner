@@ -1,12 +1,12 @@
 package requestHandler
 
 import (
+	"context"
 	"github.com/jinzhu/gorm"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	"log"
 	"net/http"
-	"context"
 )
 
 type RequestHandler struct {
@@ -36,9 +36,9 @@ func NewRequestHandler() *RequestHandler {
 }
 
 func (r *RequestHandler) RegisterHandlers() {
-	r.mux.Handle("/api/v1/users.register", middleware(http.HandlerFunc(registerUser)))
-	r.mux.Handle("/api/v1/users.login", middleware(http.HandlerFunc(loginUser)))
-	r.mux.Handle("/api/v1/images.get", middleware(http.HandlerFunc(getImages)))
+	//r.mux.Handle("/api/v1/users.register", middleware(middlewareLogin()))
+	//r.mux.Handle("/api/v1/users.login", middleware(http.HandlerFunc(loginUser)))
+	r.mux.Handle("/api/v1/images.get", middleware(middlewareLogin(http.HandlerFunc(getImages))))
 	r.mux.Handle("/api/v1/images.restore", middleware(http.HandlerFunc(restoreImages)))
 	r.mux.Handle("/api/v1/images.remove", middleware(http.HandlerFunc(removeImages)))
 	r.mux.Handle("/api/v1/subs.remove", middleware(http.HandlerFunc(removeSubs)))

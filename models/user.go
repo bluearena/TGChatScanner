@@ -5,10 +5,9 @@ import (
 )
 
 type User struct {
-	ID       uint   `gorm:"primary_key;AUTO_INCREMENT" json:"-"`
+	ID       uint64 `gorm:"primary_key;AUTO_INCREMENT" json:"-"`
+	TGID     uint64
 	Username string `gorm:"size:64" json:"username"`
-	Password string `gorm:"type:varchar(128)" json:"-"`
-	Email    string `gorm:"unique" json:"email"`
 }
 
 func (u *User) Register(db *gorm.DB) (int64, error) {
