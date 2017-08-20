@@ -7,15 +7,19 @@ type MemoryCache struct {
 	storage map[string]interface{}
 }
 
+func NewMemoryCache() *MemoryCache{
+	return &MemoryCache{sync.Mutex{}, make(map[string]interface{})}
+}
+
 func (m *MemoryCache) Add(key string, val interface{}) bool {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	_, ok := m.storage[key]
-	if !ok {
-		return false
+	_, exists := m.storage[key]
+	if exists {
+		return true
 	}
 	m.storage[key] = val
-	return true
+	return false
 }
 func (m *MemoryCache) Set(key string, val interface{}) {
 	m.mutex.Lock()

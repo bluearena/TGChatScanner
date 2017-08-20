@@ -121,19 +121,21 @@ func (s *Service) Run() error {
 
 	dbsIn := deforker.Run(workers_n * 2)
 
-	dbs := &requestHandler.DbStoragersPool{In: dbsIn}
-
+	dbs := &requestHandler.DbStoragersPool{In: dbsIn, WorkersNumber: workers_n}
 	dbs.Run()
 
-	cache := requestHandler.MemoryCache{}
+	cache := requestHandler.NewMemoryCache()
+	imgPath := s.config["chatscanner"]["images_path"].(string)
+	os.MkdirAll(imgPath, os.ModePerm);
 	context := requestHandler.AppContext{
 		Db:               db,
 		DownloadRequests: dr,
 		PoolStop:         poolStoper,
 		BotApi:           botApi,
 		CfApi:            clApi,
-		Cache:            &cache,
+		Cache:            cache,
 		Logger:           s.logger,
+		ImagesPath:       imgPath,
 	}
 
 	s.rAPIHandler.SetAppContext(&context)

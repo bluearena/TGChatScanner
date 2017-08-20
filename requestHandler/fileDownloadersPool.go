@@ -20,12 +20,14 @@ func (fdp *FileDownloadersPool) Run(queueSize int) (chan *DownloadedFile) {
 	fdp.Out = make(chan *DownloadedFile, queueSize)
 	var wg sync.WaitGroup
 	wg.Add(fdp.WorkersNumber)
+
 	for i := 0; i < fdp.WorkersNumber; i++ {
 		go func() {
 			fdp.runDownloader()
 			wg.Done()
 		}()
 	}
+
 	go func() {
 		wg.Wait()
 		close(fdp.Out)
@@ -39,7 +41,7 @@ func (fdp *FileDownloadersPool) runDownloader() {
 		df := &DownloadedFile{*in, err}
 		select {
 		case fdp.Out <- df:
-		case <- fdp.Done:
+		case <-fdp.Done:
 			return
 		}
 	}

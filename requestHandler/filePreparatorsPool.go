@@ -2,6 +2,7 @@ package requestHandler
 
 import (
 	"sync"
+	"bytes"
 )
 
 type FileLink struct {
@@ -31,6 +32,7 @@ type FilePreparatorsPool struct {
 func (fpp *FilePreparatorsPool) Run(outBufferSize int) (chan *PreparedFile) {
 	fpp.Out = make(chan *PreparedFile, outBufferSize)
 	var wg sync.WaitGroup
+
 	wg.Add(fpp.WorkersNumber)
 	for i := 0; i < fpp.WorkersNumber; i++ {
 		go func() {
@@ -38,6 +40,7 @@ func (fpp *FilePreparatorsPool) Run(outBufferSize int) (chan *PreparedFile) {
 			wg.Done()
 		}()
 	}
+
 	go func() {
 		wg.Wait()
 		close(fpp.Out)
@@ -51,7 +54,7 @@ func preparatorWorker(toPrepare chan *FileBasic, result chan *PreparedFile, done
 		file, err := appContext.BotApi.PrepareFile(fileId)
 		fl := FileLink{
 			FileDowloadUrl: appContext.BotApi.EncodeDownloadUrl(file.FilePath),
-			LocalPath:      appContext.ImagesPath,
+			LocalPath:      BuildLocalPath(fileId),
 			Basics:         *in,
 		}
 		fpResult := &PreparedFile{fl, err}
@@ -61,4 +64,12 @@ func preparatorWorker(toPrepare chan *FileBasic, result chan *PreparedFile, done
 			return
 		}
 	}
+}
+
+func BuildLocalPath(fileId string) string {
+	var buff bytes.Buffer
+	buff.WriteString(appContext.ImagesPath)
+	buff.WriteString("/")
+	buff.WriteString(fileId)
+	return buff.String()
 }

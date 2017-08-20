@@ -21,11 +21,9 @@ type BotApi struct {
 	Token string
 }
 
-
-func NewBotApi(token string) *BotApi{
-	return &BotApi{Token : token}
+func NewBotApi(token string) *BotApi {
+	return &BotApi{Token: token}
 }
-
 
 func (api *BotApi) BuildGetUrl(method string, params *url.Values) string {
 	buff := api.buildApiUrl(method)
@@ -39,7 +37,7 @@ func (api *BotApi) EncodrApiUrl(method string) string {
 	return buff.String()
 }
 
-func(api *BotApi) EncodeDownloadUrl(filePath string) string {
+func (api *BotApi) EncodeDownloadUrl(filePath string) string {
 	var buff bytes.Buffer
 	buff.WriteString(TGDownloadUrl)
 	buff.WriteString(api.Token)
@@ -64,7 +62,8 @@ func (api *BotApi) PrepareFile(fileId string) (File, error) {
 	params := url.Values{}
 	params.Add("file_id", fileId)
 
-	response, err := api.SendGetToApi("upload.GetFile", &params)
+	response, err := api.SendGetToApi("getFile", &params)
+	defer response.Body.Close()
 	if err != nil {
 		//TODO: Parse error
 		return File{}, err
@@ -74,18 +73,19 @@ func (api *BotApi) PrepareFile(fileId string) (File, error) {
 
 	if err != nil {
 		//TODO: determine what kind of error it could be and handle it
+		return File{}, err
 	}
 
-	var result File
+	var result GetFileResponse
 	err = json.Unmarshal(body, &result)
+
 	if err != nil {
 		return File{}, err
 	}
-	return result, nil
+	return result.File, nil
 }
 
-
-func (api *BotApi) SetWebhook(url string, certPath string, maxConn int, allowedUpdates string) error{
+func (api *BotApi) SetWebhook(url string, certPath string, maxConn int, allowedUpdates string) error {
 	reqBody, writer := api.createWebhookRequestBody(url, maxConn, allowedUpdates)
 	defer writer.Close()
 	if certPath != "" {
@@ -101,7 +101,7 @@ func (api *BotApi) SetWebhook(url string, certPath string, maxConn int, allowedU
 	return err
 }
 
-func (api *BotApi) createWebhookRequestBody(url string, maxConn int, allowedUpdates string)  (*bytes.Buffer, *multipart.Writer) {
+func (api *BotApi) createWebhookRequestBody(url string, maxConn int, allowedUpdates string) (*bytes.Buffer, *multipart.Writer) {
 	bodyBuffer := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuffer)
 
@@ -112,7 +112,7 @@ func (api *BotApi) createWebhookRequestBody(url string, maxConn int, allowedUpda
 	return bodyBuffer, bodyWriter
 }
 
-func (api *BotApi) loadLocalCertificate(certPath string, buff *bytes.Buffer, wr *multipart.Writer) error{
+func (api *BotApi) loadLocalCertificate(certPath string, buff *bytes.Buffer, wr *multipart.Writer) error {
 	fileWriter, err := wr.CreateFormFile("certificate", certPath)
 	if err != nil {
 		return err
@@ -120,7 +120,7 @@ func (api *BotApi) loadLocalCertificate(certPath string, buff *bytes.Buffer, wr 
 
 	file, err := os.Open(certPath)
 	if err != nil {
-		return  err
+		return err
 	}
 	defer file.Close()
 

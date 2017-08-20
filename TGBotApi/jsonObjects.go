@@ -57,6 +57,11 @@ type ChatPhoto struct {
 	BigFileId   string `json:"big_file_id, omitempty"`
 }
 
+type GetFileResponse struct {
+	File File `json:"result"`
+	Ok   bool `json:"ok"`
+}
+
 type File struct {
 	FileId   string `json:"file_id"`
 	FileSize int    `json:"file_size, omitempty"`
