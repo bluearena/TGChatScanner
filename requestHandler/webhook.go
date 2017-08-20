@@ -8,6 +8,14 @@ import (
 	"net/http"
 	"regexp"
 	"log"
+	"crypto/rand"
+	"encoding/base64"
+	"bytes"
+	"net/url"
+)
+
+const (
+	UserStatsUrl = "/stats"
 )
 
 func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
@@ -35,7 +43,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 		}
 		appContext.DownloadRequests <- fb
 	} else if update.Message.Entities[0].Type == "bot_command" {
-		if err := AddSubsription(update.Message, appContext.Cache); err != nil {
+		if err := BotCommandRouter(&update.Message, logger); err != nil {
 			logger.Println(err)
 			return
 		}
@@ -43,21 +51,54 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func AddSubsription(message TGBotApi.Message, cache *MemoryCache) error {
-	r := regexp.MustCompile(`\/(startgroup|start)?\s+(?P<token>[[:alnum:]]+)`)
+func BotCommandRouter(message *TGBotApi.Message, logger *log.Logger) error {
+	r := regexp.MustCompile(`\/(startgroup|start|mystat)?\s+(?P<token>[[:alnum:]]?)`)
 	command := r.FindStringSubmatch(message.Text)
 	if len(command) == 0 {
 		return fmt.Errorf("unexpected command %s", message.Text)
 	}
+	switch command[1] {
+	case "start":
+	case "startgroup":
+		err := AddSubsription(&message.From, &message.Chat)
+		if err != nil {
+			return err
+		}
+		return err
+	case "mystat":
+		token, err := SetUserToken(message.From.Id)
 
-	userKey := command[2]
-	userId, ok := cache.Get(userKey)
-	if !ok {
-		return fmt.Errorf("user not found, key %s", userKey)
+		if err != nil {
+			return err
+		}
+		us := BuildUserStatUrl(token)
+		//TODO: send message with URL
+		logger.Println(us)
 	}
+	return nil
+}
+func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) error {
+	//TODO: Add user and chat in "user-chat" association
+	return nil
+}
 
-	chatId := message.From.Id
+func SetUserToken(userId int) (string, error) {
+	key := make([]byte, 64)
+	_, err := rand.Read(key)
+	if err != nil {
+		return "", fmt.Errorf("failed on token generatig: %s", err)
+	}
+	token := base64.StdEncoding.EncodeToString(key)
+	//TODO: Store token in db
+	return token, err
+}
 
-	//TODO: store subscripton in database
-	return fmt.Errorf("New subscription: %s, $s", userId, chatId)
+func BuildUserStatUrl(token string) string {
+	var buff bytes.Buffer
+	buff.WriteString(UserStatsUrl)
+	buff.WriteString("?")
+	var params url.Values
+	params.Add("token", token)
+	buff.WriteString(params.Encode())
+	return buff.String()
 }
