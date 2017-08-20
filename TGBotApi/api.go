@@ -10,12 +10,16 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"fmt"
 )
 
 const (
 	TGApiUrl      = "https://api.telegram.org/bot"
 	TGDownloadUrl = "https://api.telegram.org/file/bot"
 )
+
+
+
 
 type BotApi struct {
 	Token string
@@ -127,6 +131,23 @@ func (api *BotApi) loadLocalCertificate(certPath string, buff *bytes.Buffer, wr 
 	_, err = io.Copy(fileWriter, file)
 	return err
 }
+
+func (api *BotApi) SendMessage(chatId int64, text string, withoutPreview bool) (*http.Response, error){
+	message := &SendMessageRequest{
+		Text:text,
+		ChatId:chatId,
+		DisableWebPagePreview:withoutPreview,
+	}
+	var buff bytes.Buffer
+	mjson, err := json.Marshal(&message)
+	if err != nil{
+		return nil, err
+	}
+	buff.Write(mjson)
+	r, err := api.SendPostToApi("sendMessage","application/json", &buff)
+	return r, err
+}
+
 
 func (api *BotApi) buildApiUrl(method string) *bytes.Buffer {
 	var buff bytes.Buffer

@@ -72,8 +72,10 @@ func BotCommandRouter(message *TGBotApi.Message, logger *log.Logger) error {
 			return err
 		}
 		us := BuildUserStatUrl(token)
-		//TODO: send message with URL
-		logger.Println(us)
+		_, err = appContext.BotApi.SendMessage(message.Chat.Id, us, true)
+		if err != nil{
+			return err
+		}
 	}
 	return nil
 }

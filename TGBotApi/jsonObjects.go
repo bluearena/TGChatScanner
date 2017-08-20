@@ -67,3 +67,9 @@ type File struct {
 	FileSize int    `json:"file_size, omitempty"`
 	FilePath string `json:"file_path, omitempty"`
 }
+
+type SendMessageRequest struct {
+	ChatId int64 `json:"chat_id"`
+	Text string `json:"text"`
+	DisableWebPagePreview bool `json:"disable_web_page_preview, omitempty"`
+}
