@@ -16,7 +16,7 @@ type FileDownloadersPool struct {
 	WorkersNumber int
 }
 
-func (fdp *FileDownloadersPool) Run(queueSize int) (chan *DownloadedFile) {
+func (fdp *FileDownloadersPool) Run(queueSize int, finished sync.WaitGroup) (chan *DownloadedFile) {
 	fdp.Out = make(chan *DownloadedFile, queueSize)
 	var wg sync.WaitGroup
 	wg.Add(fdp.WorkersNumber)
@@ -27,10 +27,11 @@ func (fdp *FileDownloadersPool) Run(queueSize int) (chan *DownloadedFile) {
 			wg.Done()
 		}()
 	}
-
+	finished.Add(1)
 	go func() {
 		wg.Wait()
 		close(fdp.Out)
+		finished.Done()
 	}()
 	return fdp.Out
 }

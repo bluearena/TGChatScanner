@@ -50,9 +50,9 @@ func middlewareLogin(next http.Handler) http.Handler {
 				}
 			}
 
-			user_chat := models.User_Chat{UserID: uint64(result["user_id"]),
-				ChatID: uint64(result["chat_id"]),
-				Token:  string(result["token"]),
+			user_chat := models.User_Chat{UserID:result["user_id"].(uint64),
+				ChatID: result["chat_id"].(uint64),
+				Token:  result["token"].(string),
 			}
 
 			if !user_chat.Validate(appContext.Db) {

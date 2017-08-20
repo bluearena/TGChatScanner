@@ -21,7 +21,7 @@ type InToFileLink func(*PreparedFile) (*FileLink, error)
 
 type InToFileInfo func(result *PreparedFile) (*FileInfo, error)
 
-func (fp *ForkersPool) Run(out1queue int, out2queue int) (out1 chan *FileLink, out2 chan *FileInfo) {
+func (fp *ForkersPool) Run(out1queue int, out2queue int, finished sync.WaitGroup) (out1 chan *FileLink, out2 chan *FileInfo) {
 	fp.Out1 = make(chan *FileLink, out1queue)
 	fp.Out2 = make(chan *FileInfo, out2queue)
 	var wg sync.WaitGroup
@@ -33,11 +33,12 @@ func (fp *ForkersPool) Run(out1queue int, out2queue int) (out1 chan *FileLink, o
 			wg.Done()
 		}()
 	}
-
+	finished.Add(1)
 	go func() {
 		wg.Wait()
 		close(fp.Out1)
 		close(fp.Out2)
+		finished.Done()
 	}()
 	return fp.Out1, fp.Out2
 }

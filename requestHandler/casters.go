@@ -10,6 +10,9 @@ var (
 )
 
 func CastToFileLink(pf *PreparedFile) (*FileLink, error) {
+	if pf.Error != nil{
+		return nil, pf.Error
+	}
 	return &pf.Link, nil
 }
 
