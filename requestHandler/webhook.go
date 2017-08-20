@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"bytes"
 	"net/url"
+	"github.com/rs/xid"
 )
 
 const (
@@ -52,7 +53,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 }
 
 func BotCommandRouter(message *TGBotApi.Message, logger *log.Logger) error {
-	r := regexp.MustCompile(`\/(startgroup|start|mystat)?\s+(?P<token>[[:alnum:]]?)`)
+	r := regexp.MustCompile(`\/(start(?:group)|mystats)?\s*`)
 	command := r.FindStringSubmatch(message.Text)
 	if len(command) == 0 {
 		return fmt.Errorf("unexpected command %s", message.Text)
@@ -65,7 +66,7 @@ func BotCommandRouter(message *TGBotApi.Message, logger *log.Logger) error {
 			return err
 		}
 		return err
-	case "mystat":
+	case "mystats":
 		token, err := SetUserToken(message.From.Id)
 
 		if err != nil {
@@ -85,14 +86,10 @@ func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) error {
 }
 
 func SetUserToken(userId int) (string, error) {
-	key := make([]byte, 64)
-	_, err := rand.Read(key)
-	if err != nil {
-		return "", fmt.Errorf("failed on token generatig: %s", err)
-	}
-	token := base64.StdEncoding.EncodeToString(key)
+	guid := xid.New()
+	token := guid.String()
 	//TODO: Store token in db
-	return token, err
+	return token, nil
 }
 
 func BuildUserStatUrl(token string) string {
