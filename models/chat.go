@@ -1,13 +1,14 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type Chat struct {
 	ID     uint64
 	TgID   uint64
 	Title  string
 	Avatar string
-	//User   []User   `gorm:"many2many:users_chats;"`
 }
 
 type User_Chat struct {
