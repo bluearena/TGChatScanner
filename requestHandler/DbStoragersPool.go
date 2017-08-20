@@ -5,27 +5,28 @@ import (
 	"fmt"
 )
 
-type DbStoragersPool struct{
-	In chan *CompleteFile
+type DbStoragersPool struct {
+	In            chan *CompleteFile
 	WorkersNumber int
 }
 
-func (dsp *DbStoragersPool) Run(){
+func (dsp *DbStoragersPool) Run() {
 	var wg sync.WaitGroup
 	wg.Add(dsp.WorkersNumber)
-	for i:= 0;i < dsp.WorkersNumber;i++{
+	for i := 0; i < dsp.WorkersNumber; i++ {
 		go func() {
 			dsp.runStorager()
 			wg.Done()
 		}()
 	}
-	go func(){
+	go func() {
 		wg.Wait()
 	}()
 }
 
-func (dsp *DbStoragersPool) runStorager(){
-	for in := range dsp.In{
+func (dsp *DbStoragersPool) runStorager() {
+	for in := range dsp.In {
+		appContext.Logger.Printf("Comes to db: %+v", *in)
 		//TODO: Acctually store file in the db
 		switch in.Basics.Type {
 		case "photo":

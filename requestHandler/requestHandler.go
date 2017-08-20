@@ -21,7 +21,7 @@ type AppContext struct {
 	Cache            *MemoryCache
 	Logger           *log.Logger
 	ImagesPath       string
-	PoolStop		chan struct{}
+	PoolStop         chan struct{}
 }
 
 var appContext AppContext
