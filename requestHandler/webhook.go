@@ -36,9 +36,9 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 	var message *TGBotApi.Message
 
 	if update.Message != nil {
-		message = &update.Message
+		message = update.Message
 	} else if update.EditedMessage != nil {
-		message = &update.EditedMessage
+		message = update.EditedMessage
 	}
 	if message.Document != nil && isPicture(message.Document.MimeType) {
 		ctx := make(map[string]interface{})
@@ -61,7 +61,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 		}
 		appContext.DownloadRequests <- fb
 	} else if len(message.Entities) != 0 && message.Entities[0].Type == "bot_command" {
-		if err := BotCommandRouter(&update.Message, logger); err != nil {
+		if err := BotCommandRouter(update.Message, logger); err != nil {
 			logger.Println(err)
 			return
 		}
