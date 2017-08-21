@@ -22,6 +22,7 @@ type AppContext struct {
 	Cache            *memcache.Cache
 	Logger           *log.Logger
 	ImagesPath       string
+	Hostname         string
 }
 
 var appContext AppContext

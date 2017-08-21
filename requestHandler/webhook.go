@@ -92,6 +92,7 @@ func SetUserToken(userId int) (string, error) {
 
 func BuildUserStatUrl(token string) string {
 	var buff bytes.Buffer
+	buff.WriteString(appContext.Hostname)
 	buff.WriteString(UserStatsUrl)
 	buff.WriteString("?")
 	params := url.Values{}

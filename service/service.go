@@ -129,10 +129,20 @@ func (s *Service) Run() error {
 	dbs := &requestHandler.DbStoragersPool{In: dbsIn, WorkersNumber: workers_n}
 	dbs.Run(s.poolsWG)
 
-	cache := memcache.New(5 * time.Minute,10 * time.Minute)
+	cache := memcache.New(5*time.Minute, 10*time.Minute)
 
 	imgPath := s.config["chatscanner"]["images_path"].(string)
 	os.MkdirAll(imgPath, os.ModePerm);
+	hostname := s.config["chatscanner"]["host"].(string)
+
+	_, err = url.Parse(hostname)
+
+	if err != nil {
+		hostname, err = os.Hostname()
+	}
+	if err != nil {
+		hostname = "localhost"
+	}
 
 	context := requestHandler.AppContext{
 		Db:               db,
@@ -142,6 +152,7 @@ func (s *Service) Run() error {
 		Cache:            cache,
 		Logger:           s.logger,
 		ImagesPath:       imgPath,
+		Hostname:         hostname,
 	}
 
 	s.rAPIHandler.SetAppContext(&context)

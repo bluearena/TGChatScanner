@@ -51,25 +51,22 @@ func (fp *ForkersPool) fork() {
 		out1, err1 := fp.ForkToFileLink(in)
 		out2, err2 := fp.ForkToFileInfo(in)
 		if err1 == nil && err2 == nil {
-			var wg sync.WaitGroup
-			wg.Add(1)
-			go func(outCopy *FileLink) {
-				defer wg.Done()
+			select {
+			case fp.Out1 <- out1:
+				select {
+				case fp.Out2 <- out2:
+				case <-fp.Done:
+					return
+				}
+			case fp.Out2 <- out2:
 				select {
 				case fp.Out1 <- out1:
 				case <-fp.Done:
 					return
 				}
-			}(out1)
-
-			select {
-			case fp.Out2 <- out2:
 			case <-fp.Done:
-
 				return
 			}
-
-			wg.Wait()
 		} else if err1 != nil && err2 == nil {
 			select {
 			case fp.Out2 <- out2:
