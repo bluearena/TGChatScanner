@@ -1,8 +1,8 @@
 package requestHandler
 
 import (
-	"sync"
 	"fmt"
+	"sync"
 )
 
 type DbStoragersPool struct {

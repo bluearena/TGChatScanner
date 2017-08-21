@@ -3,11 +3,11 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	memcache "github.com/patrickmn/go-cache"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	"github.com/zwirec/TGChatScanner/modelManager"
 	"github.com/zwirec/TGChatScanner/requestHandler"
-	memcache "github.com/patrickmn/go-cache"
 	"io/ioutil"
 	"log"
 	"net"
@@ -132,7 +132,7 @@ func (s *Service) Run() error {
 	cache := memcache.New(5*time.Minute, 10*time.Minute)
 
 	imgPath := s.config["chatscanner"]["images_path"].(string)
-	os.MkdirAll(imgPath, os.ModePerm);
+	os.MkdirAll(imgPath, os.ModePerm)
 	hostname := s.config["chatscanner"]["host"].(string)
 
 	_, err = url.Parse(hostname)

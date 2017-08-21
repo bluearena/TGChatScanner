@@ -1,16 +1,18 @@
 package requestHandler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/rs/xid"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"io/ioutil"
-	"net/http"
-	"regexp"
 	"log"
-	"bytes"
+	"net/http"
 	"net/url"
-	"github.com/rs/xid"
+	"regexp"
+	"mime"
+	"strings"
 )
 
 const (
@@ -33,12 +35,21 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 	}
 	var message *TGBotApi.Message
 
-	if update.Message.MessageId != 0{
+	if update.Message != nil {
 		message = &update.Message
-	} else if update.EditedMessage.MessageId != 0{
+	} else if update.EditedMessage != nil {
 		message = &update.EditedMessage
 	}
-
+	if message.Document != nil && isPicture(message.Document.MimeType) {
+		ctx := make(map[string]interface{})
+		ctx["From"] = message.From
+		fb := &FileBasic{
+			FileId:  message.Document.FileId,
+			Type:    "photo",
+			Context: ctx,
+		}
+		appContext.DownloadRequests <- fb
+	}
 	if pl := len(message.Photo); pl != 0 {
 		photo := message.Photo[pl-1]
 		ctx := make(map[string]interface{})
@@ -80,7 +91,7 @@ func BotCommandRouter(message *TGBotApi.Message, logger *log.Logger) error {
 		}
 		us := BuildUserStatUrl(token)
 		_, err = appContext.BotApi.SendMessage(message.Chat.Id, us, true)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 	}
@@ -107,4 +118,21 @@ func BuildUserStatUrl(token string) string {
 	params.Add("token", token)
 	buff.WriteString(params.Encode())
 	return buff.String()
+}
+
+func isPicture(mtype string) bool{
+	//TODO:DEBUG
+	appContext.Logger.Printf("before parsing mtype is %s", mtype)
+
+	m,_,err := mime.ParseMediaType(mtype)
+	//TODO:DEBUG
+	appContext.Logger.Printf("after parsing mtype is %s", m)
+
+	if err != nil{
+		return false
+	}
+	if strings.HasPrefix(m,"image"){
+		return true
+	}
+	return false
 }
