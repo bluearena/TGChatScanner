@@ -7,6 +7,7 @@ import (
 	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	"github.com/zwirec/TGChatScanner/modelManager"
 	"github.com/zwirec/TGChatScanner/requestHandler"
+	memcache "github.com/patrickmn/go-cache"
 	"io/ioutil"
 	"log"
 	"net"
@@ -17,6 +18,7 @@ import (
 	"os/user"
 	"sync"
 	"syscall"
+	"time"
 )
 
 var (
@@ -49,6 +51,8 @@ type Service struct {
 	config      Config
 	logger      *log.Logger
 	notifier    chan os.Signal
+	poolsWG     sync.WaitGroup
+	poolsDone   chan struct{}
 }
 
 func NewService() *Service {
@@ -57,6 +61,7 @@ func NewService() *Service {
 		mux:         http.NewServeMux(),
 		logger:      log.New(os.Stdout, "", log.LstdFlags),
 		notifier:    make(chan os.Signal),
+		poolsDone:   make(chan struct{}),
 	}
 }
 
@@ -93,7 +98,7 @@ func (s *Service) Run() error {
 	poolStoper := make(chan struct{})
 
 	fp := &requestHandler.FilePreparatorsPool{In: dr, Done: poolStoper, WorkersNumber: workers_n}
-	fpOut := fp.Run(workers_n * 2)
+	fpOut := fp.Run(workers_n*2, s.poolsWG)
 
 	forker := &requestHandler.ForkersPool{
 		In:             fpOut,
@@ -103,13 +108,13 @@ func (s *Service) Run() error {
 		ForkToFileLink: requestHandler.CastToFileLink,
 	}
 
-	fdIn, prIn := forker.Run(workers_n, workers_n)
+	fdIn, prIn := forker.Run(workers_n, workers_n, s.poolsWG)
 
 	fd := &requestHandler.FileDownloadersPool{In: fdIn, Done: poolStoper, WorkersNumber: workers_n}
-	fdOut := fd.Run(workers_n)
+	fdOut := fd.Run(workers_n, s.poolsWG)
 
 	pr := &requestHandler.PhotoRecognizersPool{In: prIn, Done: poolStoper, WorkersNumber: workers_n}
-	prOut := pr.Run(workers_n)
+	prOut := pr.Run(workers_n, s.poolsWG)
 
 	deforker := &requestHandler.DeforkersPool{
 		In1:              fdOut,
@@ -119,23 +124,35 @@ func (s *Service) Run() error {
 		DeforkRecognized: requestHandler.CastFromRecognizedPhoto,
 	}
 
-	dbsIn := deforker.Run(workers_n * 2)
+	dbsIn := deforker.Run(workers_n*2, s.poolsWG)
 
 	dbs := &requestHandler.DbStoragersPool{In: dbsIn, WorkersNumber: workers_n}
-	dbs.Run()
+	dbs.Run(s.poolsWG)
 
-	cache := requestHandler.NewMemoryCache()
+	cache := memcache.New(5*time.Minute, 10*time.Minute)
+
 	imgPath := s.config["chatscanner"]["images_path"].(string)
 	os.MkdirAll(imgPath, os.ModePerm);
+	hostname := s.config["chatscanner"]["host"].(string)
+
+	_, err = url.Parse(hostname)
+
+	if err != nil {
+		hostname, err = os.Hostname()
+	}
+	if err != nil {
+		hostname = "localhost"
+	}
+
 	context := requestHandler.AppContext{
 		Db:               db,
 		DownloadRequests: dr,
-		PoolStop:         poolStoper,
 		BotApi:           botApi,
 		CfApi:            clApi,
 		Cache:            cache,
 		Logger:           s.logger,
 		ImagesPath:       imgPath,
+		Hostname:         hostname,
 	}
 
 	s.rAPIHandler.SetAppContext(&context)
@@ -176,7 +193,7 @@ func (s *Service) parseConfig(_url string) error {
 
 	_, err := url.Parse(_url)
 
-	if err != nil {
+	if err == nil {
 		res, err := http.Get(_url)
 		if err != nil {
 			s.logger.Println(err)
@@ -217,6 +234,8 @@ func (s *Service) handler(c chan os.Signal) {
 	for {
 		<-c
 		log.Print("Gracefully stopping...")
+		close(s.poolsDone)
+		s.poolsWG.Wait()
 		s.srv.Shutdown(nil)
 		s.sock.Close()
 		os.Remove(s.config["server"]["socket"].(string))

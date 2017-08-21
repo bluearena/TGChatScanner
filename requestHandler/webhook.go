@@ -31,17 +31,25 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 		logger.Printf("Error during unmarshaling request on %s : %s", req.URL.String(), err)
 		return
 	}
-	if pl := len(update.Message.Photo); pl != 0 {
-		photo := update.Message.Photo[pl-1]
+	var message *TGBotApi.Message
+
+	if update.Message.MessageId != 0{
+		message = &update.Message
+	} else if update.EditedMessage.MessageId != 0{
+		message = &update.EditedMessage
+	}
+
+	if pl := len(message.Photo); pl != 0 {
+		photo := message.Photo[pl-1]
 		ctx := make(map[string]interface{})
-		ctx["From"] = update.Message.From
+		ctx["From"] = message.From
 		fb := &FileBasic{
 			FileId:  photo.FileId,
 			Type:    "photo",
 			Context: ctx,
 		}
 		appContext.DownloadRequests <- fb
-	} else if update.Message.Entities[0].Type == "bot_command" {
+	} else if len(message.Entities) != 0 && message.Entities[0].Type == "bot_command" {
 		if err := BotCommandRouter(&update.Message, logger); err != nil {
 			logger.Println(err)
 			return
@@ -92,6 +100,7 @@ func SetUserToken(userId int) (string, error) {
 
 func BuildUserStatUrl(token string) string {
 	var buff bytes.Buffer
+	buff.WriteString(appContext.Hostname)
 	buff.WriteString(UserStatsUrl)
 	buff.WriteString("?")
 	params := url.Values{}

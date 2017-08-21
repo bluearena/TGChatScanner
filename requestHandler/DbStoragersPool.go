@@ -10,7 +10,7 @@ type DbStoragersPool struct {
 	WorkersNumber int
 }
 
-func (dsp *DbStoragersPool) Run() {
+func (dsp *DbStoragersPool) Run(finished sync.WaitGroup) {
 	var wg sync.WaitGroup
 	wg.Add(dsp.WorkersNumber)
 	for i := 0; i < dsp.WorkersNumber; i++ {
@@ -19,8 +19,10 @@ func (dsp *DbStoragersPool) Run() {
 			wg.Done()
 		}()
 	}
+	finished.Add(1)
 	go func() {
 		wg.Wait()
+		finished.Done()
 	}()
 }
 

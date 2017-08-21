@@ -15,7 +15,7 @@ type RecognizedPhoto struct {
 	Error  error
 }
 
-func (frp *PhotoRecognizersPool) Run(queueSize int) chan *RecognizedPhoto {
+func (frp *PhotoRecognizersPool) Run(queueSize int, finished sync.WaitGroup) chan *RecognizedPhoto {
 	frp.Out = make(chan *RecognizedPhoto, queueSize)
 	var wg sync.WaitGroup
 	wg.Add(frp.WorkersNumber)
@@ -25,9 +25,11 @@ func (frp *PhotoRecognizersPool) Run(queueSize int) chan *RecognizedPhoto {
 			wg.Done()
 		}()
 	}
+	finished.Add(1)
 	go func() {
 		wg.Wait()
 		close(frp.Out)
+		finished.Done()
 	}()
 	return frp.Out
 }

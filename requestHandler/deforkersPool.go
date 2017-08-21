@@ -18,7 +18,7 @@ type FromDownloadedToComplete func(*DownloadedFile) (*CompleteFile, error)
 
 type FromRecognizedToComplete func(*RecognizedPhoto) (*CompleteFile, error)
 
-func (dp *DeforkersPool) Run(queueSize int) chan *CompleteFile {
+func (dp *DeforkersPool) Run(queueSize int, finished sync.WaitGroup) chan *CompleteFile {
 	dp.Out = make(chan *CompleteFile, queueSize)
 	var wg sync.WaitGroup
 	wg.Add(dp.WorkersNumber)
@@ -28,9 +28,11 @@ func (dp *DeforkersPool) Run(queueSize int) chan *CompleteFile {
 			wg.Done()
 		}()
 	}
+	finished.Add(1)
 	go func() {
 		wg.Wait()
 		close(dp.Out)
+		finished.Done()
 	}()
 	return dp.Out
 }
