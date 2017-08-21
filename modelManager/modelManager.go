@@ -23,12 +23,12 @@ func ConnectToDB(dbinfo map[string]interface{}) (*gorm.DB, error) {
 
 func InitDB(db *gorm.DB) {
 	db.LogMode(true)
-	db.AutoMigrate(&models.User{}, &models.Chat{}, &models.Tag{}, models.Image{})
+	db.AutoMigrate(&models.User{}, &models.Chat{}, &models.Tag{}, models.Image{}, models.Token{})
 	db.AutoMigrate(&models.User_Chat{})
-	//db.Model(&models.Token{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
-	db.Model(&models.Image{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
-	db.Model(&models.User_Chat{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
-	db.Model(&models.User_Chat{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
+	//db.Model(&models.Token{}).AddForeignKey("user_id", "users(tg_id)", "RESTRICT", "RESTRICT")
+	//db.Model(&models.Image{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
+	//db.Model(&models.User_Chat{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
+	//db.Model(&models.User_Chat{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
 	//db.Model(&models.Token{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
 	//db.Model(&models.Token{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
 }

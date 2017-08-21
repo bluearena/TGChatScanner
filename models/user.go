@@ -5,8 +5,8 @@ import (
 )
 
 type User struct {
-	ID       uint64 `gorm:"primary_key;AUTO_INCREMENT" json:"-"`
-	TGID     uint64
+	gorm.Model
+	TGID     uint64 `gorm:"unique" json:"-"`
 	Username string `gorm:"size:64" json:"username"`
 }
 
@@ -24,4 +24,9 @@ func (u *User) IsExists(db *gorm.DB) bool {
 		return true
 	}
 	return false
+}
+
+func (u *User) validateToken(db *gorm.DB) {
+	token := Token{}
+	db.Model(&Token{}).Where("token = ?", token).Related(&token, "Token")
 }

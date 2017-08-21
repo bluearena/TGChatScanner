@@ -1,10 +1,5 @@
 package models
 
-import (
-	"github.com/jinzhu/gorm"
-	"time"
-)
-
 type Chat struct {
 	ID     uint64
 	TGID   uint64
@@ -13,23 +8,21 @@ type Chat struct {
 }
 
 type User_Chat struct {
-	ID        uint64
-	ChatID    uint64
-	UserID    uint64
-	Token     string
-	ExpiredTo time.Time
+	ID     uint64
+	ChatID uint64
+	UserID uint64
 }
 
 func (User_Chat) TableName() string {
 	return "users_chats"
 }
 
-func (u *User_Chat) Validate(db *gorm.DB) bool {
-	var u_ch User_Chat
-	row := db.Where(&u).Find(&u_ch).RowsAffected
-	if row == 1 && time.Now().Before(u_ch.ExpiredTo) {
-		return true
-	} else {
-		return false
-	}
-}
+//func (u *User_Chat) Validate(db *gorm.DB) bool {
+//	var u_ch User_Chat
+//	row := db.Where(&u).Find(&u_ch).RowsAffected
+//	if row == 1 && time.Now().Before(u_ch.ExpiredTo) {
+//		return true
+//	} else {
+//		return false
+//	}
+//}
