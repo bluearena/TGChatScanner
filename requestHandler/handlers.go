@@ -1,8 +1,6 @@
 package requestHandler
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/zwirec/TGChatScanner/models"
 	"net/http"
@@ -15,69 +13,15 @@ type UserJSON struct {
 	Model *models.User `json:"entity,omitempty"`
 }
 
-var user_key = "user"
-
-func middlewareLogin(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		l := appContext.Logger
-
-		if req.Method == "GET" {
-			token := req.Header.Get("X-User-Token")
-
-			if token == "" {
-
-				response := UserJSON{Err: "X-User-Token isn't ",
-					Model: nil}
-
-				responseJSON, err := json.Marshal(response)
-				if err != nil {
-					writeResponse(w, string(responseJSON), http.StatusForbidden)
-					l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusForbidden)
-					return
-				} else {
-					l.Println(err)
-					return
-				}
-			}
-
-			tok := models.Token{Token: token}
-
-			user := tok.GetUser(appContext.Db)
-
-			if user == nil {
-				response := UserJSON{Err: "incorrect user_id or tokens lifetime is expired",
-					Model: nil}
-				responseJSON, err := json.Marshal(response)
-				if err != nil {
-					writeResponse(w, string(responseJSON), http.StatusTeapot)
-					l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
-					return
-				} else {
-					l.Println(err)
-					return
-				}
-			} else {
-				ctx := context.WithValue(req.Context(), user_key, user)
-				next.ServeHTTP(w, req.WithContext(ctx))
-			}
-
-		} else {
-			response := UserJSON{Err: "method not allowed",
-				Model: nil}
-			responseJSON, err := json.Marshal(response)
-			if err != nil {
-				writeResponse(w, string(responseJSON), http.StatusMethodNotAllowed)
-				return
-			} else {
-				l.Println(err)
-			}
-		}
-
-	})
+type ImagesJSON struct {
 }
 
+var user_key = "user"
+
 func getImages(w http.ResponseWriter, req *http.Request) {
-	//TODO
+	values := req.URL.Query()
+
+	imgs := &models.Image{}.GetImgByParams(appContext.Db, values)
 	fmt.Fprint(w, "images.get")
 	return
 }

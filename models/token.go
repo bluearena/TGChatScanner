@@ -21,8 +21,10 @@ func (t *Token) Store(db *gorm.DB) error {
 	return db.Error
 }
 
-func (t *Token) GetUser(db *gorm.DB) *User {
-	if !db.Model(&Token{}).Preload("User").Where("token = ? AND expired_to > ?", t.Token, time.Now()).First(t).RecordNotFound() {
+func (t *Token) GetUserByToken(db *gorm.DB) *User {
+	if !db.Model(&Token{}).Preload("User").
+		Where("token = ? AND expired_to > ?", t.Token, time.Now()).
+		First(t).RecordNotFound() {
 		return &t.User
 	}
 	return nil
