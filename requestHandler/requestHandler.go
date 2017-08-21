@@ -3,11 +3,11 @@ package requestHandler
 import (
 	"context"
 	"github.com/jinzhu/gorm"
+	memcache "github.com/patrickmn/go-cache"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	"log"
 	"net/http"
-	memcache "github.com/patrickmn/go-cache"
 )
 
 type RequestHandler struct {
@@ -37,14 +37,10 @@ func NewRequestHandler() *RequestHandler {
 }
 
 func (r *RequestHandler) RegisterHandlers() {
-	//r.mux.Handle("/api/v1/users.register", middleware(middlewareLogin()))
-	//r.mux.Handle("/api/v1/users.login", middleware(http.HandlerFunc(loginUser)))
-	r.mux.Handle("/api/v1/images.get", middleware(middlewareLogin(http.HandlerFunc(getImages))))
-	r.mux.Handle("/api/v1/images.restore", middleware(http.HandlerFunc(restoreImages)))
-	r.mux.Handle("/api/v1/images.remove", middleware(http.HandlerFunc(removeImages)))
-	r.mux.Handle("/api/v1/subs.remove", middleware(http.HandlerFunc(removeSubs)))
-	r.mux.Handle("/api/v1/chats.get", middleware(http.HandlerFunc(getChats)))
-	r.mux.Handle("/api/v1/tags.get", middleware(http.HandlerFunc(getTags)))
+	r.mux.Handle("/api/v1/images", middleware(middlewareLogin(http.HandlerFunc(getImages))))
+	r.mux.Handle("/api/v1/chats", middleware(middlewareLogin(http.HandlerFunc(getChats))))
+	r.mux.Handle("/api/v1/chat", middleware(middlewareLogin(http.HandlerFunc(getChat))))
+	r.mux.Handle("/api/v1/tags", middleware(middlewareLogin(http.HandlerFunc(getTags))))
 	r.mux.Handle("/"+appContext.BotApi.Token, middleware(http.HandlerFunc(BotUpdateHanlder)))
 }
 
