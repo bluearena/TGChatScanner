@@ -1,8 +1,8 @@
 package requestHandler
 
 import (
-	"sync"
 	"bytes"
+	"sync"
 )
 
 type FileLink struct {
@@ -29,7 +29,7 @@ type FilePreparatorsPool struct {
 	WorkersNumber int
 }
 
-func (fpp *FilePreparatorsPool) Run(outBufferSize int, finished sync.WaitGroup) (chan *PreparedFile) {
+func (fpp *FilePreparatorsPool) Run(outBufferSize int, finished sync.WaitGroup) chan *PreparedFile {
 	fpp.Out = make(chan *PreparedFile, outBufferSize)
 	var wg sync.WaitGroup
 

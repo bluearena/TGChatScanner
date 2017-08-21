@@ -11,7 +11,7 @@ var (
 )
 
 func CastToFileLink(pf *PreparedFile) (*FileLink, error) {
-	if pf.Error != nil{
+	if pf.Error != nil {
 		return nil, pf.Error
 	}
 	return &pf.Link, nil
@@ -47,7 +47,7 @@ func CastFromRecognizedPhoto(rp *RecognizedPhoto) (*CompleteFile, error) {
 	}
 	fID := rp.FileId
 	exists := appContext.Cache.Add(fID, rp.Tags, cache.DefaultExpiration)
-	if exists != nil{
+	if exists != nil {
 		lk, _ := appContext.Cache.Get(fID)
 		link := lk.(*FileLink)
 		link.Basics.Context["tags"] = rp.Tags
