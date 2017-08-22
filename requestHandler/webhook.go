@@ -122,7 +122,7 @@ func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) error {
 	return nil
 }
 
-func SetUserToken(userId int) (string, error) {
+func SetUserToken(userId uint) (string, error) {
 	guid := xid.New()
 	t := &models.Token{
 		Token:     guid.String(),

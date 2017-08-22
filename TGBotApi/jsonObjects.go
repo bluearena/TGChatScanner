@@ -1,7 +1,7 @@
 package TGBotApi
 
 type Update struct {
-	UpdateId          int      `json:"update_id"`
+	UpdateId          uint      `json:"update_id"`
 	Message           *Message `json:"message, omitempty"`
 	EditedMessage     *Message `json:"edited_message, omitempty"`
 	ChannelPost       *Message `json:"channel_post, omitempty"`
@@ -33,7 +33,7 @@ type PhotoSize struct {
 }
 
 type User struct {
-	Id           int    `json:"id"`
+	Id           uint    `json:"id"`
 	FirstName    string `json:"first_name"`
 	LastName     string `json:"last_name,omitempty"`
 	UserName     string `json:"user_name, omitempty"`
@@ -41,7 +41,7 @@ type User struct {
 }
 
 type Chat struct {
-	Id                          int64     `json:"id"`
+	Id                          uint64     `json:"id"`
 	Type                        string    `json:"type"`
 	Title                       string    `json:"title, omitempty"`
 	Username                    string    `json:"username, omitempty"`
@@ -70,7 +70,7 @@ type File struct {
 }
 
 type SendMessageRequest struct {
-	ChatId                int64  `json:"chat_id"`
+	ChatId                uint64  `json:"chat_id"`
 	Text                  string `json:"text"`
 	DisableWebPagePreview bool   `json:"disable_web_page_preview, omitempty"`
 }

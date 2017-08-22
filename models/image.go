@@ -9,9 +9,9 @@ import (
 type Image struct {
 	gorm.Model
 	Src    string    `json:"src"`
-	Tags   []Tag     `sql:"many2many:images_tags"`
-	Date   time.Time `sql:"not null" json:"date"`
-	ChatID uint64    `sql:"not null" json:"-"`
+	Tags   []Tag     `gorm:"many2many:images_tags"`
+	Date   time.Time `gorm:"not null" json:"date"`
+	ChatID uint64    `gorm:"not null" json:"-"`
 	Chat   Chat      `gorm:"ForeignKey:TGID;AssociationForeignKey:ChatID"`
 }
 
@@ -50,8 +50,9 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 		tags = append(tags, &Tag{Name: t})
 	}
 	tx := db.Begin()
+	onConflict := "ON CONFLICT ON CONSTRAINT (tags_name_key) DO NOTHING"
 	for _, t := range tags {
-		if err := db.Set("gorm:insert_options", "ON CONFLICT (name) DO NOTHING").Save(t).Error; err != nil {
+		if err := db.Set("gorm:insert_options",onConflict ).Save(t).Error; err != nil {
 			tx.Rollback()
 			return err
 		}

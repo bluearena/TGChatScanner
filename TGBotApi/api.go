@@ -128,7 +128,7 @@ func (api *BotApi) loadLocalCertificate(certPath string, buff *bytes.Buffer, wr 
 	return err
 }
 
-func (api *BotApi) SendMessage(chatId int64, text string, withoutPreview bool) (*http.Response, error) {
+func (api *BotApi) SendMessage(chatId uint64, text string, withoutPreview bool) (*http.Response, error) {
 	message := &SendMessageRequest{
 		Text:                  text,
 		ChatId:                chatId,
