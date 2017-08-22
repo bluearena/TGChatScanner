@@ -6,6 +6,7 @@ import (
 	"github.com/zwirec/TGChatScanner/models"
 	"net/http"
 	"strconv"
+	"log"
 )
 
 type UserJSON struct {
@@ -46,16 +47,16 @@ func getImages(w http.ResponseWriter, req *http.Request) {
 
 		if err == nil {
 			writeResponse(w, string(responseJSON), http.StatusInternalServerError)
-			acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
 			return
 		} else {
 			writeResponse(w, nil, http.StatusInternalServerError)
-			acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
 			err_l.Println(err)
 			return
 		}
 		writeResponse(w, string(responseJSON), http.StatusTeapot)
-		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+		logHttpRequest(acc_l, req, http.StatusTeapot)
 	}
 
 	response := ImagesJSON{Err: "",
@@ -64,11 +65,11 @@ func getImages(w http.ResponseWriter, req *http.Request) {
 
 	if err == nil {
 		writeResponse(w, string(responseJSON), http.StatusTeapot)
-		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+		logHttpRequest(acc_l, req, http.StatusTeapot)
 		return
 	} else {
 		err_l.Println(err)
-		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+		logHttpRequest(acc_l, req, http.StatusTeapot)
 		return
 	}
 	return
@@ -89,11 +90,11 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			writeResponse(w, nil, http.StatusInternalServerError)
 			err_l.Println(err)
-			acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
 			return
 		}
 		writeResponse(w, string(responseJSON), http.StatusBadRequest)
-		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusBadRequest)
+		logHttpRequest(acc_l, req, http.StatusBadRequest)
 		return
 	}
 
@@ -107,11 +108,12 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			writeResponse(w, nil, http.StatusInternalServerError)
 			err_l.Println(err)
-			acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
 			return
 		}
 		writeResponse(w, string(responseJSON), http.StatusBadRequest)
-		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+
+		logHttpRequest(acc_l, req, http.StatusBadRequest)
 		return
 	} else {
 		response := TagsJSON{Err: "",
@@ -119,12 +121,12 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 		responseJSON, err := json.Marshal(response)
 		if err != nil {
 			writeResponse(w, nil, http.StatusInternalServerError)
-			acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
 			err_l.Println(err)
 			return
 		}
 		writeResponse(w, string(responseJSON), http.StatusOK)
-		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusOK)
+		logHttpRequest(acc_l, req, http.StatusOK)
 		return
 	}
 
@@ -145,11 +147,11 @@ func getChats(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			writeResponse(w, nil, http.StatusInternalServerError)
 			err_l.Println(err)
-			acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
 			return
 		}
 		writeResponse(w, string(responseJSON), http.StatusBadRequest)
-		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusBadRequest)
+		logHttpRequest(acc_l, req, http.StatusBadRequest)
 		return
 	}
 
@@ -161,14 +163,15 @@ func getChats(w http.ResponseWriter, req *http.Request) {
 			Chats: nil}
 		responseJSON, _ := json.Marshal(response)
 		writeResponse(w, string(responseJSON), http.StatusInternalServerError)
-		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+
+		logHttpRequest(acc_l, req, http.StatusInternalServerError)
 		return
 	} else {
 		response := ChatsJSON{Err: "",
 			Chats: user.Chats}
 		responseJSON, _ := json.Marshal(response)
 		writeResponse(w, string(responseJSON), http.StatusTeapot)
-		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+		logHttpRequest(acc_l, req, http.StatusTeapot)
 		return
 	}
 }
@@ -201,4 +204,8 @@ func writeResponse(w http.ResponseWriter, data interface{}, status int) error {
 		}
 	}
 	return nil
+}
+
+func logHttpRequest(l *log.Logger, req *http.Request, code int) {
+	l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, code)
 }
