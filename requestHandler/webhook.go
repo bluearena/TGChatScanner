@@ -13,6 +13,8 @@ import (
 	"regexp"
 	"mime"
 	"strings"
+	"github.com/zwirec/TGChatScanner/models"
+	"time"
 )
 
 const (
@@ -46,6 +48,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 		fb := &FileBasic{
 			FileId:  message.Document.FileId,
 			Type:    "photo",
+			Sent:	time.Unix(int64(message.Date),0),
 			Context: ctx,
 		}
 		appContext.DownloadRequests <- fb
@@ -57,6 +60,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 		fb := &FileBasic{
 			FileId:  photo.FileId,
 			Type:    "photo",
+			Sent:	time.Unix(int64(message.Date),0),
 			Context: ctx,
 		}
 		appContext.DownloadRequests <- fb
@@ -98,15 +102,37 @@ func BotCommandRouter(message *TGBotApi.Message, logger *log.Logger) error {
 	return nil
 }
 func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) error {
-	//TODO: Add user and chat in "user-chat" association
+	var username string
+	if user.UserName != "" {
+		username = user.UserName
+	} else {
+		username = user.FirstName
+	}
+
+	u := &models.User{
+		TGID:     uint64(user.Id),
+		Username: username,
+	}
+
+	if appContext.Db.NewRecord(u) {
+		//TODO: Add chat properly
+		appContext.Db.Create(u)
+	}
+
 	return nil
 }
 
 func SetUserToken(userId int) (string, error) {
 	guid := xid.New()
-	token := guid.String()
-	//TODO: Store token in db
-	return token, nil
+	t := &models.Token{
+		Token:     guid.String(),
+		ExpiredTo: time.Now().AddDate(0, 0, 1),
+		UserID:    uint(userId),
+	}
+	if err := appContext.Db.Create(t).Error; err != nil {
+		return "", err
+	}
+	return t.Token, nil
 }
 
 func BuildUserStatUrl(token string) string {
@@ -120,18 +146,13 @@ func BuildUserStatUrl(token string) string {
 	return buff.String()
 }
 
-func isPicture(mtype string) bool{
-	//TODO:DEBUG
-	appContext.Logger.Printf("before parsing mtype is %s", mtype)
+func isPicture(mtype string) bool {
+	m, _, err := mime.ParseMediaType(mtype)
 
-	m,_,err := mime.ParseMediaType(mtype)
-	//TODO:DEBUG
-	appContext.Logger.Printf("after parsing mtype is %s", m)
-
-	if err != nil{
+	if err != nil {
 		return false
 	}
-	if strings.HasPrefix(m,"image"){
+	if strings.HasPrefix(m, "image") {
 		return true
 	}
 	return false
