@@ -12,7 +12,7 @@ type Image struct {
 	Tags   []Tag     `gorm:"many2many:images_tags"`
 	Date   time.Time `gorm:"not null" json:"date"`
 	ChatID uint64    `gorm:"not null" json:"-"`
-	Chat   Chat      `gorm:"ForeignKey:TGID;AssociationForeignKey:ChatID"`
+	Chat   Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID"`
 }
 
 func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) ([]Image, error) {
@@ -52,7 +52,7 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 	tx := db.Begin()
 	onConflict := "ON CONFLICT ON CONSTRAINT (tags_name_key) DO NOTHING"
 	for _, t := range tags {
-		if err := db.Set("gorm:insert_options",onConflict ).Save(t).Error; err != nil {
+		if err := db.Set("gorm:insert_options", onConflict).Save(t).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -62,5 +62,5 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 		tx.Rollback()
 		return err
 	}
-	return nil
+	return tx.Commit().Error
 }

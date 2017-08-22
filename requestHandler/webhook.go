@@ -108,18 +108,16 @@ func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) error {
 	} else {
 		username = user.FirstName
 	}
-
 	u := &models.User{
 		TGID:     uint64(user.Id),
 		Username: username,
+		Chats: []models.Chat(
+			models.Chat{
+				TGID:  chat.Id,
+				Title: chat.Title,
+			}),
 	}
-
-	if appContext.Db.NewRecord(u) {
-		//TODO: Add chat properly
-		appContext.Db.Create(u)
-	}
-
-	return nil
+	return appContext.Db.Save(u).Error
 }
 
 func SetUserToken(userId uint) (string, error) {

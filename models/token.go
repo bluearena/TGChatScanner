@@ -9,9 +9,8 @@ type Token struct {
 	gorm.Model
 	Token     string    `gorm:"unique" json:"token"`
 	ExpiredTo time.Time `json:"expired_to"`
-
-	User   User `gorm:"ForeignKey:TGID;AssociationForeignKey:UserID"`
-	UserID uint `json:"user_id"`
+	User      User      `gorm:"ForeignKey:UserID;AssociationForeignKey:TGID"`
+	UserID    uint      `json:"user_id"`
 }
 
 func (t *Token) Store(db *gorm.DB) error {

@@ -2,14 +2,16 @@ package models
 
 import (
 	"github.com/jinzhu/gorm"
+	"time"
 )
 
 type User struct {
-	gorm.Model
-	TGID     uint64  `gorm:"primary_key:true" json:"-"`
-	Username string  `gorm:"size:64" json:"username"`
-	Chats    []Chat  `gorm:"many2many:users_chats;AssociationForeignKey:TGID;ForeignKey:ID"`
-	Token    []Token `gorm:"ForeignKey:ID;AssociationForeignKey:TGID"`
+	TGID      uint64 `gorm:"primary_key" json:"-"`
+	DeletedAt time.Time
+	CreatedAt time.Time
+	Username  string  `gorm:"size:64" json:"username"`
+	Chats     []Chat  `gorm:"many2many:users_chats;AssociationForeignKey:TGID;ForeignKey:TGID"`
+	Token     []Token `gorm:"ForeignKey:TGID;AssociationForeignKey:ID"`
 }
 
 func (u *User) Register(db *gorm.DB) (int64, error) {
