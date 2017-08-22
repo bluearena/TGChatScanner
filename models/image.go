@@ -12,8 +12,7 @@ type Image struct {
 	Tags   []Tag     `sql:"many2many:images_tags"`
 	Date   time.Time `sql:"not null" json:"date"`
 	ChatID uint64    `sql:"not null" json:"-"`
-	//OtherID uint64
-	Chat Chat `gorm:"ForeignKey:TGID;AssociationForeignKey:ChatID"`
+	Chat   Chat      `gorm:"ForeignKey:TGID;AssociationForeignKey:ChatID"`
 }
 
 func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) ([]Image, error) {

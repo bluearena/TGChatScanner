@@ -20,16 +20,20 @@ type AppContext struct {
 	CfApi            *clarifaiApi.ClarifaiApi
 	BotApi           *TGBotApi.BotApi
 	Cache            *memcache.Cache
-	Logger           *log.Logger
+	SysLogger        *log.Logger
+	AccessLogger     *log.Logger
 	ImagesPath       string
 	Hostname         string
 }
 
 var appContext AppContext
 
-type key int
+type key string
 
-var loggerContextKey key = 0
+var (
+	sysLoggerKey key = "sysLogger"
+	accLoggerKey key = "accessLogger"
+)
 
 func NewRequestHandler() *RequestHandler {
 	mux := http.NewServeMux()
@@ -40,7 +44,7 @@ func (r *RequestHandler) RegisterHandlers() {
 	r.mux.Handle("/api/v1/images", middleware(middlewareLogin(http.HandlerFunc(getImages))))
 	r.mux.Handle("/api/v1/chats", middleware(middlewareLogin(http.HandlerFunc(getChats))))
 	//r.mux.Handle("/api/v1/chat", middleware(middlewareLogin(http.HandlerFunc(getChat))))
-	r.mux.Handle("/api/v1/tags", middleware(middlewareLogin(http.HandlerFunc(getTags))))
+	r.mux.Handle("/api/v1/tags", middleware(middlewareLogin(http.HandlerFunc(getChatTags))))
 	r.mux.Handle("/"+appContext.BotApi.Token, middleware(http.HandlerFunc(BotUpdateHanlder)))
 }
 
@@ -49,7 +53,8 @@ func (r *RequestHandler) SetAppContext(context *AppContext) {
 }
 
 func AddLogger(ctx context.Context, req *http.Request) context.Context {
-	return context.WithValue(ctx, loggerContextKey, appContext.Logger)
+	ctx1 := context.WithValue(ctx, accLoggerKey, appContext.AccessLogger)
+	return context.WithValue(ctx1, sysLoggerKey, appContext.SysLogger)
 }
 
 func middleware(next http.Handler) http.Handler {

@@ -9,14 +9,13 @@ type Chat struct {
 	Users []User `json:"-"`
 	//Image uint
 	Images []Image `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID" json:"images,omitempty"`
+	Tags   []Tag   `gorm:"many2many:chats_tags;AssociationForeignKey:TGID;ForeignKey:ChatID"`
 }
 
-type User_Chat struct {
-	ID     uint64
-	ChatID uint64
-	UserID uint64
-}
-
-func (User_Chat) TableName() string {
-	return "users_chats"
+func (ch *Chat) GetTags(db *gorm.DB) error {
+	db.Model(&Chat{}).
+		Preload("Tags").
+		Where("tg_id = ?", ch.TGID).
+		Find(ch)
+	return db.Error
 }

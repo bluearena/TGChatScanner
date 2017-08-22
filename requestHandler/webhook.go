@@ -8,10 +8,10 @@ import (
 	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"net/url"
 	"regexp"
-	"mime"
 	"strings"
 )
 
@@ -21,7 +21,7 @@ const (
 
 func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
-	logger := req.Context().Value(loggerContextKey).(*log.Logger)
+	logger := req.Context().Value(sysLoggerKey).(*log.Logger)
 	if err != nil {
 		logger.Printf("Error during handling request on %s : %s", req.URL.String(), err)
 		return
@@ -120,18 +120,18 @@ func BuildUserStatUrl(token string) string {
 	return buff.String()
 }
 
-func isPicture(mtype string) bool{
+func isPicture(mtype string) bool {
 	//TODO:DEBUG
 	appContext.Logger.Printf("before parsing mtype is %s", mtype)
 
-	m,_,err := mime.ParseMediaType(mtype)
+	m, _, err := mime.ParseMediaType(mtype)
 	//TODO:DEBUG
 	appContext.Logger.Printf("after parsing mtype is %s", m)
 
-	if err != nil{
+	if err != nil {
 		return false
 	}
-	if strings.HasPrefix(m,"image"){
+	if strings.HasPrefix(m, "image") {
 		return true
 	}
 	return false

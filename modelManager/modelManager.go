@@ -21,14 +21,12 @@ func ConnectToDB(dbinfo map[string]interface{}) (*gorm.DB, error) {
 	return db, err
 }
 
-func InitDB(db *gorm.DB) {
+func InitDB(db *gorm.DB) error {
 	db.LogMode(true)
 	db.AutoMigrate(&models.User{}, &models.Chat{}, &models.Tag{}, models.Image{}, models.Token{})
-	db.AutoMigrate(&models.User_Chat{})
-	//db.Model(&models.Token{}).AddForeignKey("user_id", "users(tg_id)", "RESTRICT", "RESTRICT")
+	db.Model(&models.Token{}).AddForeignKey("user_id", "users(tg_id)", "RESTRICT", "RESTRICT")
 	//db.Model(&models.Image{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
-	//db.Model(&models.User_Chat{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
-	//db.Model(&models.User_Chat{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
 	//db.Model(&models.Token{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
 	//db.Model(&models.Token{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
+	return db.Error
 }

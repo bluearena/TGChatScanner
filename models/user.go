@@ -8,7 +8,7 @@ type User struct {
 	gorm.Model
 	TGID     uint64  `gorm:"primary_key:true" json:"-"`
 	Username string  `gorm:"size:64" json:"username"`
-	Chats    []Chat  `gorm:"many2many:users_chats;AssociationForeignKey:TGID;ForeignKey:TGID"`
+	Chats    []Chat  `gorm:"many2many:users_chats;AssociationForeignKey:TGID;ForeignKey:ID"`
 	Token    []Token `gorm:"ForeignKey:ID;AssociationForeignKey:TGID"`
 }
 

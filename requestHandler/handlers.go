@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/zwirec/TGChatScanner/models"
 	"net/http"
-	"net/url"
 	"strconv"
 )
 
@@ -15,7 +14,7 @@ type UserJSON struct {
 }
 
 type ImagesJSON struct {
-	Err    error          `json:"error"`
+	Err    string         `json:"error"`
 	Images []models.Image `json:"images"`
 }
 
@@ -24,69 +23,152 @@ type ChatsJSON struct {
 	Chats []models.Chat `json:"chats"`
 }
 
+type TagsJSON struct {
+	Err  string       `json:"error"`
+	Tags []models.Tag `json:"tags"`
+}
+
 var user_key = "user"
 
 func getImages(w http.ResponseWriter, req *http.Request) {
-	l := appContext.Logger
+	err_l := appContext.SysLogger
+	acc_l := appContext.AccessLogger
+
 	values := req.URL.Query()
 	img := models.Image{}
 
 	imgs, err := img.GetImgByParams(appContext.Db, values)
 
 	if err != nil {
-		l.Println(err)
+		response := ImagesJSON{Err: "server error",
+			Images: nil}
+		responseJSON, err := json.Marshal(response)
+
+		if err == nil {
+			writeResponse(w, string(responseJSON), http.StatusInternalServerError)
+			acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+			return
+		} else {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+			err_l.Println(err)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusTeapot)
+		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
 	}
+
 	response := ImagesJSON{Err: nil,
 		Images: imgs}
 	responseJSON, err := json.Marshal(response)
+
 	if err == nil {
 		writeResponse(w, string(responseJSON), http.StatusTeapot)
-		l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
 		return
 	} else {
-		l.Println(err)
+		err_l.Println(err)
+		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
 		return
 	}
 	return
 }
 
-func restoreImages(w http.ResponseWriter, req *http.Request) {
-	//TODO
-	fmt.Fprint(w, "images.restore")
-	return
-}
-func removeImages(w http.ResponseWriter, req *http.Request) {
-	//TODO
-	fmt.Fprint(w, "images.remove")
-	return
+func getChatTags(w http.ResponseWriter, req *http.Request) {
+	err_l := appContext.SysLogger
+	acc_l := appContext.AccessLogger
+
+	values := req.URL.Query()
+
+	chat_id, err := strconv.ParseUint(values["chat_id"][0], 10, 64)
+
+	if err != nil {
+		response := TagsJSON{Err: "invalid chat_id",
+			Tags: nil}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			err_l.Println(err)
+			acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusBadRequest)
+		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusBadRequest)
+		return
+	}
+
+	chat := models.Chat{TGID: chat_id}
+
+	if err := chat.GetTags(appContext.Db); err != nil {
+		err_l.Println(err)
+		response := TagsJSON{Err: "system error",
+			Tags: nil}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			err_l.Println(err)
+			acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusBadRequest)
+		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+		return
+	} else {
+		response := TagsJSON{Err: nil,
+			Tags: chat.Tags}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+			err_l.Println(err)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusOK)
+		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusOK)
+		return
+	}
+
 }
 
 func getChats(w http.ResponseWriter, req *http.Request) {
-	l := appContext.Logger
+	err_l := appContext.SysLogger
+	acc_l := appContext.AccessLogger
+
 	values := req.URL.Query()
 
 	user_id, err := strconv.ParseUint(values["user_id"][0], 10, 64)
 
 	if err != nil {
-		l.Fatal(err)
+		response := ChatsJSON{Err: "invalid user_id",
+			Chats: nil}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			err_l.Println(err)
+			acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusBadRequest)
+		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusBadRequest)
+		return
 	}
 
 	user := models.User{TGID: user_id}
 
 	if err := user.GetUsersChats(appContext.Db); err != nil {
-		l.Println(err)
+		err_l.Println(err)
 		response := ChatsJSON{Err: "system error",
 			Chats: nil}
 		responseJSON, _ := json.Marshal(response)
 		writeResponse(w, string(responseJSON), http.StatusInternalServerError)
-		l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
 		return
 	} else {
 		response := ChatsJSON{Err: "",
 			Chats: user.Chats}
 		responseJSON, _ := json.Marshal(response)
 		writeResponse(w, string(responseJSON), http.StatusTeapot)
-		l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
 		return
 	}
 }
@@ -103,23 +185,6 @@ func removeSubs(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func validateGETParams(values url.Values) (map[string]interface{}, bool) {
-	if values["user_id"] == nil || values["chat_id"] == nil || values["token"] == nil {
-		return nil, false
-	}
-	result := map[string]interface{}{}
-
-	var err error
-	result["user_id"], err = strconv.ParseUint(values["user_id"][0], 10, 64)
-	result["chat_id"], err = strconv.ParseUint(values["client_id"][0], 10, 64)
-
-	if err != nil {
-		return nil, false
-	}
-	result["token"] = values["token"]
-	return result, false
-}
-
 func validateLoginParams(values map[string]interface{}) (ok bool) {
 	if values["username"] == nil || values["password"] == nil {
 		return false
@@ -131,7 +196,6 @@ func writeResponse(w http.ResponseWriter, data interface{}, status int) error {
 	w.WriteHeader(status)
 	if data != nil {
 		_, err := fmt.Fprint(w, data)
-
 		if err != nil {
 			return err
 		}
