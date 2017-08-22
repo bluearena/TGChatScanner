@@ -9,18 +9,19 @@ import (
 type FileLink struct {
 	FileDowloadUrl string
 	LocalPath      string
-	Basics         FileBasic
+	Basics         *FileBasic
 }
 
 type PreparedFile struct {
-	Link  FileLink
+	Link  *FileLink
 	Error error
 }
 
 type FileBasic struct {
-	FileId  string
-	Type    string
-	Sent    time.Time
+	FileId string
+	Type   string
+	Sent   time.Time
+
 	Context map[string]interface{}
 }
 
@@ -59,10 +60,10 @@ func preparatorWorker(toPrepare chan *FileBasic, result chan *PreparedFile, done
 			appContext.SysLogger.Printf("error during preparation stage on %s: %s", in.FileId, err)
 			continue
 		}
-		fl := FileLink{
+		fl := &FileLink{
 			FileDowloadUrl: appContext.BotApi.EncodeDownloadUrl(file.FilePath),
 			LocalPath:      BuildLocalPath(fileId),
-			Basics:         *in,
+			Basics:         in,
 		}
 		fpResult := &PreparedFile{fl, nil}
 		select {
