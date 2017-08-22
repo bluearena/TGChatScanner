@@ -11,7 +11,7 @@ type Image struct {
 	Src    string    `json:"src"`
 	Tags   []Tag     `gorm:"many2many:images_tags"`
 	Date   time.Time `gorm:"not null" json:"date"`
-	ChatID uint64    `gorm:"not null" json:"-"`
+	ChatID int64    `gorm:"not null" json:"-"`
 	Chat   Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID"`
 }
 

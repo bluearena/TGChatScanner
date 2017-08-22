@@ -98,8 +98,9 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 	}
 	switch command[1] {
 	case "start":
-		fallthrough
 	case "startgroup":
+
+	case "wantscan":
 		err := AddSubsription(&message.From, &message.Chat)
 		return err
 	case "mystats":
@@ -123,25 +124,29 @@ func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) error {
 	} else {
 		username = user.FirstName
 	}
+	db := appContext.Db
+
 	ch := models.Chat{
 		TGID:  chat.Id,
 		Title: chat.Title,
 	}
 	u := &models.User{
-		TGID:     uint64(user.Id),
+		TGID:     user.Id,
 		Username: username,
 		Chats:    []models.Chat{ch},
 	}
-	return appContext.Db.Save(u).Error
+
+	return db.Save(u).Error
 }
 
-func SetUserToken(userId uint) (string, error) {
+func SetUserToken(userId int) (string, error) {
 	guid := xid.New()
 	t := &models.Token{
 		Token:     guid.String(),
 		ExpiredTo: time.Now().AddDate(0, 0, 1),
-		UserID:    uint(userId),
+		UserID:    userId,
 	}
+
 	if err := appContext.Db.Create(t).Error; err != nil {
 		return "", err
 	}

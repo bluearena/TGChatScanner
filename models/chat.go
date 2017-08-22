@@ -6,7 +6,7 @@ import (
 )
 
 type Chat struct {
-	TGID      uint64 `gorm:"primary_key"`
+	TGID      int64 `gorm:"primary_key"`
 	CreatedAt time.Time
 	DeletedAt *time.Time
 	Title     string  `json:"title"`

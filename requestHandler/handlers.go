@@ -81,7 +81,7 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 
 	values := req.URL.Query()
 
-	chat_id, err := strconv.ParseUint(values["chat_id"][0], 10, 64)
+	chat_id, err := strconv.ParseInt(values["chat_id"][0], 10, 64)
 
 	if err != nil {
 		response := TagsJSON{Err: "invalid chat_id",
@@ -140,7 +140,7 @@ func getUserTags(w http.ResponseWriter, req *http.Request) {
 
 	values := req.URL.Query()
 
-	user_id, err := strconv.ParseUint(values["user_id"][0], 10, 64)
+	user_id, err := strconv.ParseInt(values["user_id"][0], 10, 32)
 
 	if err != nil {
 		response := TagsJSON{Err: "invalid chat_id",
@@ -157,7 +157,7 @@ func getUserTags(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	user := models.User{TGID: user_id}
+	user := models.User{TGID: int(user_id)}
 
 	tags, err := user.GetTags(appContext.Db)
 
@@ -199,7 +199,7 @@ func getChats(w http.ResponseWriter, req *http.Request) {
 
 	values := req.URL.Query()
 
-	user_id, err := strconv.ParseUint(values["user_id"][0], 10, 64)
+	user_id, err := strconv.ParseInt(values["user_id"][0], 10, 32)
 
 	if err != nil {
 		response := ChatsJSON{Err: "invalid user_id",
@@ -216,7 +216,7 @@ func getChats(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	user := models.User{TGID: user_id}
+	user := models.User{TGID: int(user_id)}
 
 	if err := user.GetUsersChats(appContext.Db); err != nil {
 		err_l.Println(err)

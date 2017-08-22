@@ -30,7 +30,7 @@ func (dsp *DbStoragersPool) runStorager() {
 	for in := range dsp.In {
 		img := &models.Image{
 			Src:    in.LocalPath,
-			ChatID: in.Basics.Context["from"].(uint64),
+			ChatID: in.Basics.Context["from"].(int64),
 		}
 		tags := in.Basics.Context["tags"].([]string)
 		if err := img.CreateImageWithTags(appContext.Db, tags); err != nil {
