@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/rs/xid"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
+	"github.com/zwirec/TGChatScanner/models"
 	"io/ioutil"
 	"log"
 	"mime"
@@ -13,6 +14,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 )
 
 const (
@@ -21,7 +23,7 @@ const (
 
 func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
-	logger := req.Context().Value(sysLoggerKey).(*log.Logger)
+	logger := req.Context().Value(loggerContextKey).(*log.Logger)
 	if err != nil {
 		logger.Printf("Error during handling request on %s : %s", req.URL.String(), err)
 		return
@@ -40,23 +42,25 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 	} else if update.EditedMessage != nil {
 		message = update.EditedMessage
 	}
+
+	ctx := make(map[string]interface{})
+	ctx["from"] = message.Chat.Id
+
 	if message.Document != nil && isPicture(message.Document.MimeType) {
-		ctx := make(map[string]interface{})
-		ctx["From"] = message.From
 		fb := &FileBasic{
 			FileId:  message.Document.FileId,
 			Type:    "photo",
+			Sent:    time.Unix(int64(message.Date), 0),
 			Context: ctx,
 		}
 		appContext.DownloadRequests <- fb
 	}
 	if pl := len(message.Photo); pl != 0 {
 		photo := message.Photo[pl-1]
-		ctx := make(map[string]interface{})
-		ctx["From"] = message.From
 		fb := &FileBasic{
 			FileId:  photo.FileId,
 			Type:    "photo",
+			Sent:    time.Unix(int64(message.Date), 0),
 			Context: ctx,
 		}
 		appContext.DownloadRequests <- fb
@@ -98,15 +102,37 @@ func BotCommandRouter(message *TGBotApi.Message, logger *log.Logger) error {
 	return nil
 }
 func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) error {
-	//TODO: Add user and chat in "user-chat" association
+	var username string
+	if user.UserName != "" {
+		username = user.UserName
+	} else {
+		username = user.FirstName
+	}
+
+	u := &models.User{
+		TGID:     uint64(user.Id),
+		Username: username,
+	}
+
+	if appContext.Db.NewRecord(u) {
+		//TODO: Add chat properly
+		appContext.Db.Create(u)
+	}
+
 	return nil
 }
 
 func SetUserToken(userId int) (string, error) {
 	guid := xid.New()
-	token := guid.String()
-	//TODO: Store token in db
-	return token, nil
+	t := &models.Token{
+		Token:     guid.String(),
+		ExpiredTo: time.Now().AddDate(0, 0, 1),
+		UserID:    uint(userId),
+	}
+	if err := appContext.Db.Create(t).Error; err != nil {
+		return "", err
+	}
+	return t.Token, nil
 }
 
 func BuildUserStatUrl(token string) string {
@@ -121,12 +147,7 @@ func BuildUserStatUrl(token string) string {
 }
 
 func isPicture(mtype string) bool {
-	//TODO:DEBUG
-	appContext.Logger.Printf("before parsing mtype is %s", mtype)
-
 	m, _, err := mime.ParseMediaType(mtype)
-	//TODO:DEBUG
-	appContext.Logger.Printf("after parsing mtype is %s", m)
 
 	if err != nil {
 		return false

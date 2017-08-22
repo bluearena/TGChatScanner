@@ -3,6 +3,7 @@ package requestHandler
 import (
 	"bytes"
 	"sync"
+	"time"
 )
 
 type FileLink struct {
@@ -19,6 +20,7 @@ type PreparedFile struct {
 type FileBasic struct {
 	FileId  string
 	Type    string
+	Sent    time.Time
 	Context map[string]interface{}
 }
 
