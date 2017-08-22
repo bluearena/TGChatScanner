@@ -98,6 +98,7 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 	}
 	switch command[1] {
 	case "start":
+		fallthrough
 	case "startgroup":
 		err := AddSubsription(&message.From, &message.Chat)
 		return err

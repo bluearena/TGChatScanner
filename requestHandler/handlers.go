@@ -6,7 +6,6 @@ import (
 	"github.com/zwirec/TGChatScanner/models"
 	"log"
 	"net/http"
-	"os/user"
 	"strconv"
 )
 
