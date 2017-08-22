@@ -1,10 +1,10 @@
 package requestHandler
 
 import (
-	"sync"
-	"os"
-	"net/http"
 	"io"
+	"net/http"
+	"os"
+	"sync"
 )
 
 type DownloadedFile PreparedFile
@@ -16,7 +16,7 @@ type FileDownloadersPool struct {
 	WorkersNumber int
 }
 
-func (fdp *FileDownloadersPool) Run(queueSize int, finished sync.WaitGroup) (chan *DownloadedFile) {
+func (fdp *FileDownloadersPool) Run(queueSize int, finished sync.WaitGroup) chan *DownloadedFile {
 	fdp.Out = make(chan *DownloadedFile, queueSize)
 	var wg sync.WaitGroup
 	wg.Add(fdp.WorkersNumber)

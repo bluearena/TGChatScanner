@@ -1,7 +1,9 @@
 package models
 
+import "github.com/jinzhu/gorm"
+
 type Tag struct {
-	ID    uint64 `gorm:"primary_key"`
+	gorm.Model
 	Name  string
 	Image []Image `sql:"many2many:images_tags;"`
 }

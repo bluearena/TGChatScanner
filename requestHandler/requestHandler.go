@@ -39,7 +39,7 @@ func NewRequestHandler() *RequestHandler {
 func (r *RequestHandler) RegisterHandlers() {
 	r.mux.Handle("/api/v1/images", middleware(middlewareLogin(http.HandlerFunc(getImages))))
 	r.mux.Handle("/api/v1/chats", middleware(middlewareLogin(http.HandlerFunc(getChats))))
-	r.mux.Handle("/api/v1/chat", middleware(middlewareLogin(http.HandlerFunc(getChat))))
+	//r.mux.Handle("/api/v1/chat", middleware(middlewareLogin(http.HandlerFunc(getChat))))
 	r.mux.Handle("/api/v1/tags", middleware(middlewareLogin(http.HandlerFunc(getTags))))
 	r.mux.Handle("/"+appContext.BotApi.Token, middleware(http.HandlerFunc(BotUpdateHanlder)))
 }

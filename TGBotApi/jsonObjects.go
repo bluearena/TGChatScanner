@@ -2,10 +2,10 @@ package TGBotApi
 
 type Update struct {
 	UpdateId          int     `json:"update_id"`
-	Message           Message `json:"message, omitempty"`
-	EditedMessage     Message `json:"edited_message, omitempty"`
-	ChannelPost       Message `json:"channel_post, omitempty"`
-	EditedChannelPost Message `json:"edited_channel_post, omitempty"`
+	Message           *Message `json:"message, omitempty"`
+	EditedMessage     *Message `json:"edited_message, omitempty"`
+	ChannelPost       *Message `json:"channel_post, omitempty"`
+	EditedChannelPost *Message `json:"edited_channel_post, omitempty"`
 }
 
 type Message struct {
@@ -16,6 +16,7 @@ type Message struct {
 	Text      string          `json:"text"`
 	Entities  []MessageEntity `json:"entities,omitempty"`
 	Photo     []PhotoSize     `json:"photo, omitempty"`
+	Document  *Document `json:"document"`
 }
 
 type MessageEntity struct {
@@ -69,7 +70,15 @@ type File struct {
 }
 
 type SendMessageRequest struct {
-	ChatId int64 `json:"chat_id"`
-	Text string `json:"text"`
+	ChatId                int64 `json:"chat_id"`
+	Text                  string `json:"text"`
 	DisableWebPagePreview bool `json:"disable_web_page_preview, omitempty"`
+}
+
+type Document struct {
+	FileId   string `json:"file_id"`
+	Thumb    []PhotoSize `json:"thumb"`
+	FileName string `json:"file_name"`
+	MimeType string `json:"mime_type"`
+	FileSize int `json:"file_size"`
 }
