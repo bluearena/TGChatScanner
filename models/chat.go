@@ -8,7 +8,7 @@ type Chat struct {
 	Title  string  `json:"title"`
 	Users  []User  `json:"-"`
 	Images []Image `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID" json:"images,omitempty"`
-	Tags   []Tag   `gorm:"many2many:chats_tags;ForeignKeyTGID:AssociationForeignKey:TGID;"`
+	Tags   []Tag   `gorm:"many2many:chats_tags;AssociationForeignKey:TGID;ForeignKey:ChatID"`
 }
 
 func (ch *Chat) GetTags(db *gorm.DB) error {
