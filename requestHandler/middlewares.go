@@ -9,7 +9,8 @@ import (
 
 func middlewareLogin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		l := appContext.Logger
+		err_l := appContext.SysLogger
+		acc_l := appContext.AccessLogger
 
 		if req.Method == "GET" {
 			token := req.Header.Get("X-User-Token")
@@ -20,12 +21,13 @@ func middlewareLogin(next http.Handler) http.Handler {
 					Model: nil}
 
 				responseJSON, err := json.Marshal(response)
-				if err != nil {
+				if err == nil {
 					writeResponse(w, string(responseJSON), http.StatusForbidden)
-					l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusForbidden)
+					acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusForbidden)
 					return
 				} else {
-					l.Println(err)
+					err_l.Println(err)
+					acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
 					return
 				}
 			}
@@ -40,10 +42,11 @@ func middlewareLogin(next http.Handler) http.Handler {
 				responseJSON, err := json.Marshal(response)
 				if err == nil {
 					writeResponse(w, string(responseJSON), http.StatusTeapot)
-					l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+					acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
 					return
 				} else {
-					l.Println(err)
+					err_l.Println(err)
+					acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
 					return
 				}
 			} else {
@@ -55,11 +58,14 @@ func middlewareLogin(next http.Handler) http.Handler {
 			response := UserJSON{Err: "method not allowed",
 				Model: nil}
 			responseJSON, err := json.Marshal(response)
-			if err != nil {
+			if err == nil {
 				writeResponse(w, string(responseJSON), http.StatusMethodNotAllowed)
+				acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusMethodNotAllowed)
 				return
 			} else {
-				l.Println(err)
+				acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+				err_l.Println(err)
+				return
 			}
 		}
 

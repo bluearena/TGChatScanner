@@ -58,7 +58,7 @@ func getImages(w http.ResponseWriter, req *http.Request) {
 		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
 	}
 
-	response := ImagesJSON{Err: nil,
+	response := ImagesJSON{Err: "",
 		Images: imgs}
 	responseJSON, err := json.Marshal(response)
 
@@ -114,7 +114,7 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 		acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
 		return
 	} else {
-		response := TagsJSON{Err: nil,
+		response := TagsJSON{Err: "",
 			Tags: chat.Tags}
 		responseJSON, err := json.Marshal(response)
 		if err != nil {

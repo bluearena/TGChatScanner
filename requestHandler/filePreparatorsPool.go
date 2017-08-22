@@ -56,7 +56,7 @@ func preparatorWorker(toPrepare chan *FileBasic, result chan *PreparedFile, done
 		fileId := in.FileId
 		file, err := appContext.BotApi.PrepareFile(fileId)
 		if err != nil {
-			appContext.Logger.Printf("error during preparation stage on %s: %s", in.FileId, err)
+			appContext.SysLogger.Printf("error during preparation stage on %s: %s", in.FileId, err)
 			continue
 		}
 		fl := FileLink{

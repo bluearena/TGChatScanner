@@ -1,7 +1,6 @@
 package service
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	memcache "github.com/patrickmn/go-cache"
@@ -9,7 +8,6 @@ import (
 	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	"github.com/zwirec/TGChatScanner/modelManager"
 	"github.com/zwirec/TGChatScanner/requestHandler"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -69,17 +67,17 @@ func NewService() *Service {
 
 func (s *Service) Run() error {
 
-	errorlog, err := os.OpenFile("error.log", os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		errorlog = os.Stderr
-	}
-	accesslog, err := os.OpenFile("access.log", os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		accesslog = os.Stdout
-	}
+	//_, err := os.OpenFile("error.log", os.O_CREATE|os.O_RDWR, 0777)
+	//if err != nil {
+	//	errorlog = os.Stderr
+	//}
+	//_, err := os.OpenFile("access.log", os.O_CREATE|os.O_RDWR, 0777)
+	//if err != nil {
+	//	accesslog = os.Stdout
+	//}
 
-	s.sysLogger = log.New(bufio.NewWriter(errorlog), "", log.LstdFlags|log.Llongfile)
-	s.accessLogger = log.New(bufio.NewWriter(accesslog), log.Prefix()+"%s %s %s %s %d", log.LstdFlags)
+	s.sysLogger = log.New(os.Stdout, "", log.LstdFlags|log.Llongfile)
+	s.accessLogger = log.New(os.Stderr, "", log.LstdFlags)
 
 	if err := s.parseConfig(configUrl); err != nil {
 		s.sysLogger.Println(err)
@@ -205,6 +203,7 @@ func (s *Service) endpoint() (err error) {
 		s.sysLogger.Println(err)
 		s.notifier <- syscall.SIGINT
 	}
+
 	s.sysLogger.Println("Socket opened")
 	s.sysLogger.Println("Server started")
 

@@ -28,14 +28,13 @@ func (dsp *DbStoragersPool) Run(finished sync.WaitGroup) {
 
 func (dsp *DbStoragersPool) runStorager() {
 	for in := range dsp.In {
-		appContext.Logger.Printf("Comes to db: %+v", *in)
 		img := &models.Image{
 			Src:    in.LocalPath,
 			ChatID: in.Basics.Context["from"].(uint64),
 		}
 		tags := in.Basics.Context["tags"].([]string)
 		if err := img.CreateImageWithTags(appContext.Db, tags); err != nil {
-			appContext.Logger.Printf("failed on storaging image: %s", err)
+			appContext.SysLogger.Printf("failed on storaging image: %s", err)
 		}
 	}
 }
