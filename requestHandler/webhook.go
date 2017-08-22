@@ -42,9 +42,11 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 	} else if update.EditedMessage != nil {
 		message = update.EditedMessage
 	}
+
+	ctx := make(map[string]interface{})
+	ctx["from"] = message.From
+
 	if message.Document != nil && isPicture(message.Document.MimeType) {
-		ctx := make(map[string]interface{})
-		ctx["From"] = message.From
 		fb := &FileBasic{
 			FileId:  message.Document.FileId,
 			Type:    "photo",
@@ -55,8 +57,6 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 	}
 	if pl := len(message.Photo); pl != 0 {
 		photo := message.Photo[pl-1]
-		ctx := make(map[string]interface{})
-		ctx["From"] = message.From
 		fb := &FileBasic{
 			FileId:  photo.FileId,
 			Type:    "photo",
