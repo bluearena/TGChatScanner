@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"github.com/rs/xid"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
+	"github.com/zwirec/TGChatScanner/models"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"net/url"
 	"regexp"
-	"mime"
 	"strings"
-	"github.com/zwirec/TGChatScanner/models"
 	"time"
 )
 
@@ -44,13 +44,13 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 	}
 
 	ctx := make(map[string]interface{})
-	ctx["from"] = message.From
+	ctx["from"] = message.Chat.Id
 
 	if message.Document != nil && isPicture(message.Document.MimeType) {
 		fb := &FileBasic{
 			FileId:  message.Document.FileId,
 			Type:    "photo",
-			Sent:	time.Unix(int64(message.Date),0),
+			Sent:    time.Unix(int64(message.Date), 0),
 			Context: ctx,
 		}
 		appContext.DownloadRequests <- fb
@@ -60,7 +60,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 		fb := &FileBasic{
 			FileId:  photo.FileId,
 			Type:    "photo",
-			Sent:	time.Unix(int64(message.Date),0),
+			Sent:    time.Unix(int64(message.Date), 0),
 			Context: ctx,
 		}
 		appContext.DownloadRequests <- fb

@@ -1,8 +1,8 @@
 package requestHandler
 
 import (
-	"sync"
 	"github.com/zwirec/TGChatScanner/models"
+	"sync"
 )
 
 type DbStoragersPool struct {
@@ -34,9 +34,8 @@ func (dsp *DbStoragersPool) runStorager() {
 			ChatID: in.Basics.Context["from"].(uint64),
 		}
 		tags := in.Basics.Context["tags"].([]string)
-		if err := img.CreateImageWithTags(appContext.Db, tags);
-			err != nil {
-				appContext.Logger.Printf("failed on storaging image: %s", err)
+		if err := img.CreateImageWithTags(appContext.Db, tags); err != nil {
+			appContext.Logger.Printf("failed on storaging image: %s", err)
 		}
 	}
 }
