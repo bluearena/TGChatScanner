@@ -39,7 +39,7 @@ func (fdp *FileDownloadersPool) Run(queueSize int, finished sync.WaitGroup) chan
 func (fdp *FileDownloadersPool) runDownloader() {
 	for in := range fdp.In {
 		err := downloadFile(in.FileDowloadUrl, in.LocalPath)
-		df := &DownloadedFile{*in, err}
+		df := &DownloadedFile{in, err}
 		select {
 		case fdp.Out <- df:
 		case <-fdp.Done:

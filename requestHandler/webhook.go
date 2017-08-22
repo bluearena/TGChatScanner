@@ -3,6 +3,7 @@ package requestHandler
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"github.com/rs/xid"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"github.com/zwirec/TGChatScanner/models"
@@ -14,7 +15,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-	"errors"
 )
 
 const (
@@ -75,7 +75,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 		}
 		appContext.DownloadRequests <- fb
 	} else if len(message.Entities) != 0 && message.Entities[0].Type == "bot_command" {
-		if err := BotCommandRouter(update.Message); err != nil {
+		if err := BotCommandRouter(message); err != nil {
 			sys_l.Printf("Command: %s, error: %s", err)
 			if err == ErrUnexpectedCommand {
 				logHttpRequest(acc_l, req, http.StatusOK)
@@ -98,6 +98,7 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 	}
 	switch command[1] {
 	case "start":
+		fallthrough
 	case "startgroup":
 		err := AddSubsription(&message.From, &message.Chat)
 		return err

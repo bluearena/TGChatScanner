@@ -14,7 +14,7 @@ func CastToFileLink(pf *PreparedFile) (*FileLink, error) {
 	if pf.Error != nil {
 		return nil, pf.Error
 	}
-	return &pf.Link, nil
+	return pf.Link, nil
 }
 
 func CastToFileInfo(pf *PreparedFile) (*FileInfo, error) {
@@ -30,11 +30,11 @@ func CastFromDownloadedFile(df *DownloadedFile) (*CompleteFile, error) {
 		return nil, df.Error
 	}
 	fID := df.Link.Basics.FileId
-	exists := appContext.Cache.Add(fID, &df.Link, cache.DefaultExpiration)
+	exists := appContext.Cache.Add(fID, df.Link, cache.DefaultExpiration)
 	if exists != nil {
 		tags, _ := appContext.Cache.Get(fID)
 		df.Link.Basics.Context["tags"] = tags
-		link := (*CompleteFile)(&df.Link)
+		link := (*CompleteFile)(df.Link)
 		return link, nil
 	}
 	return nil, ErrBadDeforkAttempt

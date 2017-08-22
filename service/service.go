@@ -193,7 +193,6 @@ func (s *Service) Run() error {
 
 func (s *Service) endpoint() (err error) {
 	s.sock, err = net.Listen("unix", s.config["server"]["socket"].(string))
-
 	if err != nil {
 		s.sysLogger.Println(err)
 		os.Remove(s.config["server"]["socket"].(string))
