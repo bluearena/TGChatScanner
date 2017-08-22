@@ -1,10 +1,14 @@
 package models
 
+import "github.com/jinzhu/gorm"
+
 type Chat struct {
-	ID     uint64
-	TGID   uint64
-	Title  string
-	Avatar string
+	gorm.Model
+	TGID  uint64 `gorm:"primary_key:true" json:"chat_id"`
+	Title string `json:"title"`
+	Users []User `json:"-"`
+	//Image uint
+	Images []Image `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID" json:"images,omitempty"`
 }
 
 type User_Chat struct {
@@ -16,13 +20,3 @@ type User_Chat struct {
 func (User_Chat) TableName() string {
 	return "users_chats"
 }
-
-//func (u *User_Chat) Validate(db *gorm.DB) bool {
-//	var u_ch User_Chat
-//	row := db.Where(&u).Find(&u_ch).RowsAffected
-//	if row == 1 && time.Now().Before(u_ch.ExpiredTo) {
-//		return true
-//	} else {
-//		return false
-//	}
-//}

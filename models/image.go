@@ -8,17 +8,18 @@ import (
 
 type Image struct {
 	gorm.Model
-	Src  string
-	Tags []Tag `sql:"many2many:images_tags;"`
-	Date time.Time
-
-	Chat   Chat `gorm:"ForeignKey:ChatID"`
-	ChatID uint64
+	Src    string    `json:"src"`
+	Tags   []Tag     `sql:"many2many:images_tags"`
+	Date   time.Time `sql:"not null" json:"date"`
+	ChatID uint64    `sql:"not null" json:"-"`
+	//OtherID uint64
+	Chat Chat `gorm:"ForeignKey:TGID;AssociationForeignKey:ChatID"`
 }
 
-func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) []Image {
+func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) ([]Image, error) {
 	img_slice := []Image{}
 	q_tmp := db.Model(&Image{}).Preload("Tags").Preload("Chat")
+
 	chat_id, ok := params["chat_id"]
 	if ok {
 		q_tmp = q_tmp.Where("chat_id = ?", chat_id[0])
@@ -31,8 +32,14 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) []Image {
 	if ok {
 		q_tmp = q_tmp.Where("date < ?", date_to[0])
 	}
+
 	if q_tmp.Find(&img_slice).RecordNotFound() {
-		return nil
+		return nil, db.Error
 	}
-	return img_slice
+
+	if err := db.Error; err != nil {
+		return nil, err
+	}
+
+	return img_slice, nil
 }
