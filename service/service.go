@@ -67,17 +67,17 @@ func NewService() *Service {
 
 func (s *Service) Run() error {
 
-	//_, err := os.OpenFile("error.log", os.O_CREATE|os.O_RDWR, 0777)
-	//if err != nil {
-	//	errorlog = os.Stderr
-	//}
-	//_, err := os.OpenFile("access.log", os.O_CREATE|os.O_RDWR, 0777)
-	//if err != nil {
-	//	accesslog = os.Stdout
-	//}
+	errorlog, err := os.OpenFile("error.log", os.O_CREATE|os.O_RDWR, 0777)
+	if err != nil {
+		errorlog = os.Stderr
+	}
+	accesslog, err := os.OpenFile("access.log", os.O_CREATE|os.O_RDWR, 0777)
+	if err != nil {
+		accesslog = os.Stdout
+	}
 
-	s.sysLogger = log.New(os.Stdout, "", log.LstdFlags|log.Llongfile)
-	s.accessLogger = log.New(os.Stderr, "", log.LstdFlags)
+	s.sysLogger = log.New(errorlog, "", log.LstdFlags|log.Llongfile)
+	s.accessLogger = log.New(accesslog, "", log.LstdFlags)
 
 	if err := s.parseConfig(configUrl); err != nil {
 		s.sysLogger.Println(err)
@@ -209,7 +209,7 @@ func (s *Service) endpoint() (err error) {
 
 	if err := s.srv.Serve(s.sock); err != nil {
 		s.sysLogger.Println(err)
-		s.notifier <- syscall.SIGINT
+		//s.notifier <- syscall.SIGINT
 	}
 	return nil
 }
@@ -266,13 +266,13 @@ func (s *Service) handler(c chan os.Signal) {
 			s.sysLogger.Println(err)
 			return
 		}
-		if err := s.sock.Close(); err != nil {
-			s.sysLogger.Println(err)
-		}
-		if err := os.Remove(s.config["server"]["socket"].(string)); err != nil {
-			s.sysLogger.Println(err)
-			return
-		}
+		//if err := s.sock.Close(); err != nil {
+		//	s.sysLogger.Println(err)
+		//}
+		//if err := os.Remove(s.config["server"]["socket"].(string)); err != nil {
+		//	s.sysLogger.Println(err)
+		//	return
+		//}
 		os.Exit(0)
 	}
 }
