@@ -67,11 +67,11 @@ func NewService() *Service {
 
 func (s *Service) Run() error {
 
-	errorlog, err := os.OpenFile("error.log", os.O_CREATE|os.O_RDWR, 0777)
+	errorlog, err := os.OpenFile("error.log", os.O_APPEND|os.O_WRONLY, 0777)
 	if err != nil {
 		errorlog = os.Stderr
 	}
-	accesslog, err := os.OpenFile("access.log", os.O_CREATE|os.O_RDWR, 0777)
+	accesslog, err := os.OpenFile("access.log", os.O_APPEND|os.O_WRONLY, 0777)
 	if err != nil {
 		accesslog = os.Stdout
 	}
@@ -192,11 +192,11 @@ func (s *Service) Run() error {
 }
 
 func (s *Service) endpoint() (err error) {
-
 	s.sock, err = net.Listen("unix", s.config["server"]["socket"].(string))
 	if err != nil {
 		s.sysLogger.Println(err)
-		s.notifier <- syscall.SIGINT
+		os.Remove(s.config["server"]["socket"].(string))
+		s.sock, _ = net.Listen("unix", s.config["server"]["socket"].(string))
 	}
 	if err := os.Chmod(s.config["server"]["socket"].(string), 0777); err != nil {
 		s.sysLogger.Println(err)
@@ -205,7 +205,7 @@ func (s *Service) endpoint() (err error) {
 
 	s.sysLogger.Println("Socket opened")
 	s.sysLogger.Println("Server started")
-
+	log.Println("Server started")
 	if err := s.srv.Serve(s.sock); err != nil {
 		s.sysLogger.Println(err)
 		//s.notifier <- syscall.SIGINT
@@ -259,6 +259,7 @@ func (s *Service) handler(c chan os.Signal) {
 	for {
 		<-c
 		s.sysLogger.Println("Gracefully stopping...")
+		log.Println("Gracefully stopping...")
 		close(s.poolsDone)
 		s.poolsWG.Wait()
 		if err := s.srv.Shutdown(nil); err != nil {
