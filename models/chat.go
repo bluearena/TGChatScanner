@@ -15,10 +15,10 @@ type Chat struct {
 	Tags      []Tag   `gorm:"many2many:chats_tags;AssociationForeignKey:ID;ForeignKey:TGID"`
 }
 
-func (ch *Chat) GetTags(db *gorm.DB) error {
+func (ch *Chat) GetTags(db *gorm.DB) ([]Tag, error) {
 	db.Model(&Chat{}).
 		Preload("Tags").
 		Where("tg_id = ?", ch.TGID).
 		Find(ch)
-	return db.Error
+	return ch.Tags, db.Error
 }

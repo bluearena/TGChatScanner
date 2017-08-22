@@ -14,6 +14,20 @@ type User struct {
 	Token     []Token `gorm:"ForeignKey:TGID;AssociationForeignKey:ID"`
 }
 
+func (u *User) GetTags(db *gorm.DB) ([]Tag, error) {
+	tags := []Tag{}
+
+	db.Model(&User{}).
+		Preload("Chats.Tags").
+		Where("tg_id = ?", u.TGID).
+		Find(u)
+
+	for _, tg := range u.Chats {
+		tags = append(tags, tg.Tags...)
+	}
+	return tags, db.Error
+}
+
 func (u *User) Register(db *gorm.DB) (int64, error) {
 	if err := db.Create(u).Error; err != nil {
 		return db.RowsAffected, err

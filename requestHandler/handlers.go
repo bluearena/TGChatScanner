@@ -6,6 +6,7 @@ import (
 	"github.com/zwirec/TGChatScanner/models"
 	"log"
 	"net/http"
+	"os/user"
 	"strconv"
 )
 
@@ -100,7 +101,9 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 
 	chat := models.Chat{TGID: chat_id}
 
-	if err := chat.GetTags(appContext.Db); err != nil {
+	tags, err := chat.GetTags(appContext.Db)
+
+	if err != nil {
 		err_l.Println(err)
 		response := TagsJSON{Err: "system error",
 			Tags: nil}
@@ -117,7 +120,66 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 		return
 	} else {
 		response := TagsJSON{Err: "",
-			Tags: chat.Tags}
+			Tags: tags}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			err_l.Println(err)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusOK)
+		logHttpRequest(acc_l, req, http.StatusOK)
+		return
+	}
+
+}
+
+func getUserTags(w http.ResponseWriter, req *http.Request) {
+	err_l := appContext.SysLogger
+	acc_l := appContext.AccessLogger
+
+	values := req.URL.Query()
+
+	user_id, err := strconv.ParseUint(values["user_id"][0], 10, 64)
+
+	if err != nil {
+		response := TagsJSON{Err: "invalid chat_id",
+			Tags: nil}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			err_l.Println(err)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusBadRequest)
+		logHttpRequest(acc_l, req, http.StatusBadRequest)
+		return
+	}
+
+	user := models.User{TGID: user_id}
+
+	tags, err := user.GetTags(appContext.Db)
+
+	if err != nil {
+		err_l.Println(err)
+		response := TagsJSON{Err: "system error",
+			Tags: nil}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			err_l.Println(err)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusBadRequest)
+
+		logHttpRequest(acc_l, req, http.StatusBadRequest)
+		return
+	} else {
+		response := TagsJSON{Err: "",
+			Tags: tags}
 		responseJSON, err := json.Marshal(response)
 		if err != nil {
 			writeResponse(w, nil, http.StatusInternalServerError)
