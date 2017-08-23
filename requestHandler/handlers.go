@@ -55,8 +55,8 @@ func getImages(w http.ResponseWriter, req *http.Request) {
 			err_l.Println(err)
 			return
 		}
-		writeResponse(w, string(responseJSON), http.StatusTeapot)
-		logHttpRequest(acc_l, req, http.StatusTeapot)
+		writeResponse(w, string(responseJSON), http.StatusOK)
+		logHttpRequest(acc_l, req, http.StatusOK)
 	}
 
 	response := ImagesJSON{Err: "",
@@ -64,12 +64,12 @@ func getImages(w http.ResponseWriter, req *http.Request) {
 	responseJSON, err := json.Marshal(response)
 
 	if err == nil {
-		writeResponse(w, string(responseJSON), http.StatusTeapot)
-		logHttpRequest(acc_l, req, http.StatusTeapot)
+		writeResponse(w, string(responseJSON), http.StatusOK)
+		logHttpRequest(acc_l, req, http.StatusOK)
 		return
 	} else {
 		err_l.Println(err)
-		logHttpRequest(acc_l, req, http.StatusTeapot)
+		logHttpRequest(acc_l, req, http.StatusOK)
 		return
 	}
 	return
@@ -231,8 +231,8 @@ func getChats(w http.ResponseWriter, req *http.Request) {
 		response := ChatsJSON{Err: "",
 			Chats: user.Chats}
 		responseJSON, _ := json.Marshal(response)
-		writeResponse(w, string(responseJSON), http.StatusTeapot)
-		logHttpRequest(acc_l, req, http.StatusTeapot)
+		writeResponse(w, string(responseJSON), http.StatusOK)
+		logHttpRequest(acc_l, req, http.StatusOK)
 		return
 	}
 }

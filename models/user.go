@@ -1,18 +1,18 @@
 package models
 
 import (
+	"database/sql"
 	"github.com/jinzhu/gorm"
 	"time"
-	"database/sql"
 )
 
 type User struct {
-	TGID      int `gorm:"primary_key" json:"-"`
-	DeletedAt time.Time
-	CreatedAt time.Time
-	Username  string  `gorm:"size:64" json:"username"`
-	Chats     []Chat  `gorm:"many2many:users_chats;AssociationForeignKey:TGID;ForeignKey:TGID"`
-	Token     []Token `gorm:"ForeignKey:TGID;AssociationForeignKey:ID"`
+	TGID      int        `gorm:"primary_key" json:"-"`
+	DeletedAt *time.Time `json:"-"`
+	CreatedAt time.Time  `json:"-"`
+	Username  string     `gorm:"size:64" json:"username"`
+	Chats     []Chat     `gorm:"many2many:users_chats;AssociationForeignKey:TGID;ForeignKey:TGID"`
+	Token     []Token    `gorm:"ForeignKey:TGID;AssociationForeignKey:ID"`
 }
 
 func (u *User) GetTags(db *gorm.DB) ([]Tag, error) {
@@ -37,11 +37,11 @@ func (u *User) Register(db *gorm.DB) (int64, error) {
 	}
 }
 
-func (u *User) CreateIfNotExists(db *gorm.DB) error{
-	err := db.Set("gorm:insert_option","ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING").
+func (u *User) CreateIfNotExists(db *gorm.DB) error {
+	err := db.Set("gorm:insert_option", "ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING").
 		Create(u).
 		Error
-	if err == sql.ErrNoRows{
+	if err == sql.ErrNoRows {
 		return nil
 	}
 	return err
