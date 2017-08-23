@@ -37,13 +37,17 @@ func (api *BotApi) EncodrApiUrl(method string) string {
 	return buff.String()
 }
 
-func (api *BotApi) EncodeDownloadUrl(filePath string) string {
+func (api *BotApi) EncodeDownloadUrl(filePath string) (string, error) {
 	var buff bytes.Buffer
 	buff.WriteString(TGDownloadUrl)
 	buff.WriteString(api.Token)
 	buff.WriteString("/")
 	buff.WriteString(filePath)
-	return buff.String()
+	u,err := url.Parse(buff.String())
+	if err != nil{
+		return "", err
+	}
+	return u.String(), nil
 }
 
 func (api *BotApi) SendGetToApi(method string, params *url.Values) (*http.Response, error) {

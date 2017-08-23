@@ -44,9 +44,9 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) ([]Image, error
 }
 
 func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
-	var tags []*Tag
+	var tags []Tag
 	for _, t := range ts {
-		tags = append(tags, &Tag{Name: t})
+		tags = append(tags, Tag{Name: t})
 	}
 
 	ch := Chat{
@@ -59,15 +59,17 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 			tx.Rollback()
 			return err
 		}
-		if err := db.Model(t).Association("Chats").Append(ch).Error; err != nil {
+		if err := db.Model(&t).Association("Chats").Append(&ch).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
-		img.Tags = append(img.Tags, *t)
 	}
-	if err := db.Create(img).Error; err != nil {
+
+	img.Tags = tags
+	if err := db.Save(img).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	return tx.Commit().Error
 }

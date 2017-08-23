@@ -54,20 +54,25 @@ func (fpp *FilePreparatorsPool) Run(outBufferSize int, finished sync.WaitGroup) 
 
 func preparatorWorker(toPrepare chan *FileBasic, result chan *PreparedFile, done chan struct{}) {
 	for in := range toPrepare {
-		appContext.SysLogger.Printf("comes on prep: %+v",*in)
+		appContext.SysLogger.Printf("comes on prep: %+v", *in)
 		fileId := in.FileId
 		file, err := appContext.BotApi.PrepareFile(fileId)
 		if err != nil {
 			appContext.SysLogger.Printf("error during preparation stage on %s: %s", in.FileId, err)
 			continue
 		}
+
+		url, err := appContext.BotApi.EncodeDownloadUrl(file.FilePath)
+		if err != nil {
+			appContext.SysLogger.Printf("incorrect url during preparation stage on %s: %s", in.FileId, err)
+		}
 		fl := &FileLink{
-			FileDowloadUrl: appContext.BotApi.EncodeDownloadUrl(file.FilePath),
+			FileDowloadUrl: url,
 			LocalPath:      BuildLocalPath(fileId),
 			Basics:         in,
 		}
 		fpResult := &PreparedFile{fl, nil}
-		appContext.SysLogger.Printf("comes from prep: %+v",*fpResult)
+		appContext.SysLogger.Printf("comes from prep: %+v", *fpResult)
 		select {
 		case result <- fpResult:
 		case <-done:
