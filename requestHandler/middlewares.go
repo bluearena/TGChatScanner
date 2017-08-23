@@ -6,7 +6,6 @@ import (
 	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"github.com/zwirec/TGChatScanner/models"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -89,10 +88,10 @@ func middlewareLogin(next http.Handler) http.Handler {
 func ChatAutoStore(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		body, err := ioutil.ReadAll(req.Body)
-		acc_l := req.Context().Value(accLoggerKey).(*log.Logger)
-		sys_l := req.Context().Value(sysLoggerKey).(*log.Logger)
+		acc_l := appContext.AccessLogger
+		errLog := appContext.SysLogger
 		if err != nil {
-			sys_l.Printf("error during reading bot request: %s", err)
+			errLog.Printf("error during reading bot request: %s", err)
 			logHttpRequest(acc_l, req, http.StatusOK)
 			w.WriteHeader(http.StatusOK)
 			return
@@ -101,7 +100,7 @@ func ChatAutoStore(next http.Handler) http.Handler {
 		var update TGBotApi.Update
 		err = json.Unmarshal(body, &update)
 		if err != nil {
-			sys_l.Printf("error during unmarshaling request: %s: %s", req.URL.String(), err)
+			errLog.Printf("error during unmarshaling request: %s: %s", req.URL.String(), err)
 			logHttpRequest(acc_l, req, http.StatusInternalServerError)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -116,7 +115,7 @@ func ChatAutoStore(next http.Handler) http.Handler {
 		}
 		if up_num > MaxFailedUpdates {
 			logHttpRequest(acc_l, req, http.StatusInternalServerError)
-			sys_l.Printf("Max failed updates number exceeded on %d", upid)
+			errLog.Printf("Max failed updates number exceeded on %d", upid)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
