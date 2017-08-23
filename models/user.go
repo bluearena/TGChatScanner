@@ -1,9 +1,9 @@
 package models
 
 import (
+	"database/sql"
 	"github.com/jinzhu/gorm"
 	"time"
-	"database/sql"
 )
 
 type User struct {
@@ -37,11 +37,11 @@ func (u *User) Register(db *gorm.DB) (int64, error) {
 	}
 }
 
-func (u *User) CreateIfNotExists(db *gorm.DB) error{
-	err := db.Set("gorm:insert_option","ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING").
+func (u *User) CreateIfNotExists(db *gorm.DB) error {
+	err := db.Set("gorm:insert_option", "ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING").
 		Create(u).
 		Error
-	if err == sql.ErrNoRows{
+	if err == sql.ErrNoRows {
 		return nil
 	}
 	return err
