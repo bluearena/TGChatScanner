@@ -48,10 +48,19 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 	for _, t := range ts {
 		tags = append(tags, &Tag{Name: t})
 	}
+
+	ch := Chat{
+		TGID:img.ChatID,
+	}
 	tx := db.Begin()
 	for _, t := range tags {
 		if err := t.SaveIfUnique(db);
 			err != nil {
+			tx.Rollback()
+			return err
+		}
+		if err := db.Model(t).Association("Chats").Append(ch).Error;
+			err != nil{
 			tx.Rollback()
 			return err
 		}
