@@ -43,16 +43,15 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) ([]Image, error
 	return img_slice, nil
 }
 
-//TODO: call exorcist on this pile of unholy shit
 func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 	var tags []*Tag
 	for _, t := range ts {
 		tags = append(tags, &Tag{Name: t})
 	}
 	tx := db.Begin()
-	onConflict := "ON CONFLICT ON CONSTRAINT (tags_name_key) DO NOTHING"
 	for _, t := range tags {
-		if err := db.Set("gorm:insert_options", onConflict).Save(t).Error; err != nil {
+		if err := t.SaveIfUnique(db);
+			err != nil {
 			tx.Rollback()
 			return err
 		}

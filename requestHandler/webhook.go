@@ -87,7 +87,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-	logHttpRequest(acc_l,req,http.StatusOK)
+	logHttpRequest(acc_l, req, http.StatusOK)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -99,8 +99,13 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 	}
 	switch command[1] {
 	case "start":
+		fallthrough
 	case "startgroup":
-
+		ch := models.Chat{
+			TGID:  message.Chat.Id,
+			Title: message.Chat.Title,
+		}
+		return ch.CreateIfNotExists(appContext.Db)
 	case "wantscan":
 		err := AddSubsription(&message.From, &message.Chat)
 		return err
@@ -126,28 +131,35 @@ func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
 	}
 	db := appContext.Db
 
-	ch := models.Chat{
-		TGID:  chat.Id,
-		Title: chat.Title,
-	}
-	u := models.User{
+	u := &models.User{
 		TGID:     user.Id,
 		Username: username,
 	}
 
-	uNew := db.NewRecord(&u)
-	if uNew {
-		u.Chats = []models.Chat{ch}
-		return db.Create(&u).Error
+	ch := &models.Chat{
+		TGID:  chat.Id,
+		Title: chat.Title,
+	}
+	tx := db.Begin()
+
+	err = ch.CreateIfNotExists(db)
+	if err != nil {
+		tx.Rollback()
+		return err
 	}
 
-	chNew := db.NewRecord(&ch)
-	if !chNew {
-		return db.Model(&u).Association("Chats").Append([]models.Chat{ch}).Error
+	err = u.CreateIfNotExists(db)
+	if err != nil {
+		tx.Rollback()
+		return err
 	}
-
-	ch.Users = []models.User{u}
-	return db.Create(&ch).Error
+	err = db.Model(u).Association("Chats").Append([]models.Chat{*ch}).Error
+	if err != nil{
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
 }
 
 func SetUserToken(userId int) (string, error) {

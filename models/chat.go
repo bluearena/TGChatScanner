@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/jinzhu/gorm"
 	"time"
+	"database/sql"
 )
 
 type Chat struct {
@@ -21,4 +22,14 @@ func (ch *Chat) GetTags(db *gorm.DB) ([]Tag, error) {
 		Where("tg_id = ?", ch.TGID).
 		Find(ch)
 	return ch.Tags, db.Error
+}
+
+func (ch *Chat) CreateIfNotExists(db *gorm.DB) (error){
+	err := db.Set("gorm:insert_option","ON CONFLICT ON CONSTRAINT chats_pkey DO NOTHING").
+			Create(ch).
+			Error
+	if err == sql.ErrNoRows{
+		return nil
+	}
+	return err
 }
