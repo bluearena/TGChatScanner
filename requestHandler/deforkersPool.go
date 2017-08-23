@@ -41,20 +41,26 @@ func (dp *DeforkersPool) defork() {
 	for {
 		select {
 		case in1 := <-dp.In1:
+			appContext.SysLogger.Printf("comes on defork1: %+v", *in1)
 			out, err := dp.DeforkDownloaded(in1)
 			if err != nil {
 				continue
 			}
+
+			appContext.SysLogger.Printf("comes from defork1: %+v", *out)
 			select {
 			case dp.Out <- out:
 			case <-dp.Done:
 				return
 			}
 		case in2 := <-dp.In2:
+			appContext.SysLogger.Printf("comes on defork2: %+v", *in2)
 			out, err := dp.DeforkRecognized(in2)
 			if err != nil {
 				continue
 			}
+
+			appContext.SysLogger.Printf("comes from defork2: %+v", *out)
 			select {
 			case dp.Out <- out:
 			case <-dp.Done:

@@ -78,17 +78,8 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 	case "start":
 		fallthrough
 	case "startgroup":
-		ch := models.Chat{
-			TGID:  message.Chat.Id,
-			Title: message.Chat.Title,
-		}
-		err := ch.CreateIfNotExists(appContext.Db)
-		if err != nil {
-			return err
-		}
 		hello := "Hello, chat " + message.Chat.Title
-
-		_, err = appContext.BotApi.SendMessage(message.Chat.Id, hello, true)
+		_, err := appContext.BotApi.SendMessage(message.Chat.Id, hello, true)
 		return err
 	case "wantscan":
 		err := AddSubscription(&message.From, &message.Chat)
@@ -131,25 +122,18 @@ func AddSubscription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
 		Title: chat.Title,
 	}
 	tx := db.Begin()
-
-	err = ch.CreateIfNotExists(db)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	err = u.CreateIfNotExists(db)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	err = db.Model(u).Association("Chats").Append([]models.Chat{*ch}).Error
+	err = db.Model(u).Association("Chats").Append(*ch).Error
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+
+	return tx.Commit().Error
 }
 
 func SetUserToken(userId int) (string, error) {

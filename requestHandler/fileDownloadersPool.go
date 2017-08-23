@@ -38,10 +38,13 @@ func (fdp *FileDownloadersPool) Run(queueSize int, finished sync.WaitGroup) chan
 
 func (fdp *FileDownloadersPool) runDownloader() {
 	for in := range fdp.In {
+		appContext.SysLogger.Printf("comes on download: %+v", *in)
 		err := downloadFile(in.FileDowloadUrl, in.LocalPath)
 		df := &DownloadedFile{in, err}
+		appContext.SysLogger.Printf("comes from download: %+v", *df)
 		select {
 		case fdp.Out <- df:
+
 		case <-fdp.Done:
 			return
 		}
