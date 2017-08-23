@@ -27,12 +27,12 @@ var (
 	ErrUnexpectedCommand = errors.New("unexpected command")
 )
 
-func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
+func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	acc_l := req.Context().Value(accLoggerKey).(*log.Logger)
 	sys_l := req.Context().Value(sysLoggerKey).(*log.Logger)
 	if err != nil {
-		sys_l.Printf("Error during reading bot request: %s", err)
+		sys_l.Printf("error during reading bot request: %s", err)
 		logHttpRequest(acc_l, req, http.StatusOK)
 		w.WriteHeader(http.StatusOK)
 		return
@@ -154,6 +154,7 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 	}
 	return nil
 }
+
 func AddSubscription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
 	var username string
 	if user.UserName != "" {

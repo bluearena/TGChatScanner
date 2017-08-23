@@ -32,8 +32,8 @@ type TagsJSON struct {
 var user_key = "user"
 
 func getImages(w http.ResponseWriter, req *http.Request) {
-	err_l := appContext.SysLogger
-	acc_l := appContext.AccessLogger
+	errLog := appContext.SysLogger
+	accLog := appContext.AccessLogger
 
 	values := req.URL.Query()
 	img := models.Image{}
@@ -47,16 +47,16 @@ func getImages(w http.ResponseWriter, req *http.Request) {
 
 		if err == nil {
 			writeResponse(w, string(responseJSON), http.StatusInternalServerError)
-			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			logHttpRequest(accLog, req, http.StatusInternalServerError)
 			return
 		} else {
 			writeResponse(w, nil, http.StatusInternalServerError)
-			logHttpRequest(acc_l, req, http.StatusInternalServerError)
-			err_l.Println(err)
+			logHttpRequest(accLog, req, http.StatusInternalServerError)
+			errLog.Println(err)
 			return
 		}
 		writeResponse(w, string(responseJSON), http.StatusOK)
-		logHttpRequest(acc_l, req, http.StatusOK)
+		logHttpRequest(accLog, req, http.StatusOK)
 	}
 
 	response := ImagesJSON{Err: "",
@@ -65,19 +65,19 @@ func getImages(w http.ResponseWriter, req *http.Request) {
 
 	if err == nil {
 		writeResponse(w, string(responseJSON), http.StatusOK)
-		logHttpRequest(acc_l, req, http.StatusOK)
+		logHttpRequest(accLog, req, http.StatusOK)
 		return
 	} else {
-		err_l.Println(err)
-		logHttpRequest(acc_l, req, http.StatusOK)
+		errLog.Println(err)
+		logHttpRequest(accLog, req, http.StatusOK)
 		return
 	}
 	return
 }
 
 func getChatTags(w http.ResponseWriter, req *http.Request) {
-	err_l := appContext.SysLogger
-	acc_l := appContext.AccessLogger
+	errLog := appContext.SysLogger
+	accLog := appContext.AccessLogger
 
 	values := req.URL.Query()
 
@@ -89,12 +89,12 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 		responseJSON, err := json.Marshal(response)
 		if err != nil {
 			writeResponse(w, nil, http.StatusInternalServerError)
-			err_l.Println(err)
-			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			errLog.Println(err)
+			logHttpRequest(accLog, req, http.StatusInternalServerError)
 			return
 		}
 		writeResponse(w, string(responseJSON), http.StatusBadRequest)
-		logHttpRequest(acc_l, req, http.StatusBadRequest)
+		logHttpRequest(accLog, req, http.StatusBadRequest)
 		return
 	}
 
@@ -106,12 +106,12 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 		responseJSON, err := json.Marshal(response)
 		if err != nil {
 			writeResponse(w, nil, http.StatusInternalServerError)
-			err_l.Println(err)
-			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			errLog.Println(err)
+			logHttpRequest(accLog, req, http.StatusInternalServerError)
 			return
 		}
 		writeResponse(w, string(responseJSON), http.StatusBadRequest)
-		logHttpRequest(acc_l, req, http.StatusBadRequest)
+		logHttpRequest(accLog, req, http.StatusBadRequest)
 		return
 	}
 
@@ -120,18 +120,18 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 	tags, err := chat.GetTags(appContext.Db)
 
 	if err != nil {
-		err_l.Println(err)
+		errLog.Println(err)
 		response := TagsJSON{Err: "system error",
 			Tags: nil}
 		responseJSON, err := json.Marshal(response)
 		if err != nil {
 			writeResponse(w, nil, http.StatusInternalServerError)
-			err_l.Println(err)
-			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			errLog.Println(err)
+			logHttpRequest(accLog, req, http.StatusInternalServerError)
 			return
 		}
 		writeResponse(w, string(responseJSON), http.StatusBadRequest)
-		logHttpRequest(acc_l, req, http.StatusBadRequest)
+		logHttpRequest(accLog, req, http.StatusBadRequest)
 		return
 	} else {
 		response := TagsJSON{Err: "",
@@ -139,39 +139,39 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 		responseJSON, err := json.Marshal(response)
 		if err != nil {
 			writeResponse(w, nil, http.StatusInternalServerError)
-			logHttpRequest(acc_l, req, http.StatusInternalServerError)
-			err_l.Println(err)
+			logHttpRequest(accLog, req, http.StatusInternalServerError)
+			errLog.Println(err)
 			return
 		}
 		writeResponse(w, string(responseJSON), http.StatusOK)
-		logHttpRequest(acc_l, req, http.StatusOK)
+		logHttpRequest(accLog, req, http.StatusOK)
 		return
 	}
 
 }
 
 func getUserTags(w http.ResponseWriter, req *http.Request) {
-	err_l := appContext.SysLogger
-	acc_l := appContext.AccessLogger
+	errLog := appContext.SysLogger
+	accLog := appContext.AccessLogger
 
 	user := req.Context().Value(user_key).(*models.User)
 
 	tags, err := user.GetTags(appContext.Db)
 
 	if err != nil {
-		err_l.Println(err)
+		errLog.Println(err)
 		response := TagsJSON{Err: "system error",
 			Tags: nil}
 		responseJSON, err := json.Marshal(response)
 		if err != nil {
 			writeResponse(w, nil, http.StatusInternalServerError)
-			err_l.Println(err)
-			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			errLog.Println(err)
+			logHttpRequest(accLog, req, http.StatusInternalServerError)
 			return
 		}
 		writeResponse(w, string(responseJSON), http.StatusBadRequest)
 
-		logHttpRequest(acc_l, req, http.StatusBadRequest)
+		logHttpRequest(accLog, req, http.StatusBadRequest)
 		return
 	} else {
 		response := TagsJSON{Err: "",
@@ -179,38 +179,38 @@ func getUserTags(w http.ResponseWriter, req *http.Request) {
 		responseJSON, err := json.Marshal(response)
 		if err != nil {
 			writeResponse(w, nil, http.StatusInternalServerError)
-			logHttpRequest(acc_l, req, http.StatusInternalServerError)
-			err_l.Println(err)
+			logHttpRequest(accLog, req, http.StatusInternalServerError)
+			errLog.Println(err)
 			return
 		}
 		writeResponse(w, string(responseJSON), http.StatusOK)
-		logHttpRequest(acc_l, req, http.StatusOK)
+		logHttpRequest(accLog, req, http.StatusOK)
 		return
 	}
 
 }
 
 func getChats(w http.ResponseWriter, req *http.Request) {
-	err_l := appContext.SysLogger
-	acc_l := appContext.AccessLogger
+	errLog := appContext.SysLogger
+	accLog := appContext.AccessLogger
 
 	user := req.Context().Value(user_key).(*models.User)
 
 	if err := user.GetUsersChats(appContext.Db); err != nil {
-		err_l.Println(err)
+		errLog.Println(err)
 		response := ChatsJSON{Err: "system error",
 			Chats: nil}
 		responseJSON, _ := json.Marshal(response)
 		writeResponse(w, string(responseJSON), http.StatusInternalServerError)
 
-		logHttpRequest(acc_l, req, http.StatusInternalServerError)
+		logHttpRequest(accLog, req, http.StatusInternalServerError)
 		return
 	} else {
 		response := ChatsJSON{Err: "",
 			Chats: user.Chats}
 		responseJSON, _ := json.Marshal(response)
 		writeResponse(w, string(responseJSON), http.StatusOK)
-		logHttpRequest(acc_l, req, http.StatusOK)
+		logHttpRequest(accLog, req, http.StatusOK)
 		return
 	}
 }

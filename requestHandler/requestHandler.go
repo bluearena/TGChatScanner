@@ -45,7 +45,7 @@ func (r *RequestHandler) RegisterHandlers() {
 	r.mux.Handle("/api/v1/chats.get", middleware(middlewareLogin(http.HandlerFunc(getChats))))
 	r.mux.Handle("/api/v1/chat.tags", middleware(middlewareLogin(http.HandlerFunc(getChatTags))))
 	r.mux.Handle("/api/v1/users.tags", middleware(middlewareLogin(http.HandlerFunc(getUserTags))))
-	r.mux.Handle("/"+appContext.BotApi.Token, middleware(http.HandlerFunc(BotUpdateHanlder)))
+	r.mux.Handle("/"+appContext.BotApi.Token, middleware(http.HandlerFunc(BotUpdateHandler)))
 }
 
 func (r *RequestHandler) SetAppContext(context *AppContext) {
