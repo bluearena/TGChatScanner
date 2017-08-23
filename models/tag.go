@@ -8,7 +8,8 @@ import (
 type Tag struct {
 	gorm.Model
 	Name  string  `gorm:"not null; unique" json:"name"`
-	Image []Image `gorm:"many2many:images_tags" json:"-"`
+	Images []Image `gorm:"many2many:images_tags" json:"-"`
+	Chats []Chat `gorm:"many2many:chats_tags"`
 }
 
 func (t *Tag) SaveIfUnique(db *gorm.DB) error{

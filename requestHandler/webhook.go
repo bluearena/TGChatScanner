@@ -105,7 +105,14 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 			TGID:  message.Chat.Id,
 			Title: message.Chat.Title,
 		}
-		return ch.CreateIfNotExists(appContext.Db)
+		err := ch.CreateIfNotExists(appContext.Db)
+		if err != nil {
+			return err
+		}
+		hello := "Hello, chat " + message.Chat.Title
+
+		_, err = appContext.BotApi.SendMessage(message.Chat.Id,hello, true)
+		return err
 	case "wantscan":
 		err := AddSubsription(&message.From, &message.Chat)
 		return err
@@ -154,7 +161,7 @@ func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
 		return err
 	}
 	err = db.Model(u).Association("Chats").Append([]models.Chat{*ch}).Error
-	if err != nil{
+	if err != nil {
 		tx.Rollback()
 		return err
 	}
