@@ -111,12 +111,18 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 		}
 		hello := "Hello, chat " + message.Chat.Title
 
-		_, err = appContext.BotApi.SendMessage(message.Chat.Id,hello, true)
+		_, err = appContext.BotApi.SendMessage(message.Chat.Id, hello, true)
 		return err
 	case "wantscan":
 		err := AddSubscription(&message.From, &message.Chat)
 		return err
 	case "mystats":
+		usr := models.User{
+			TGID:     message.From.Id,
+			Username: message.From.UserName,
+		}
+
+		err := usr.CreateIfNotExists(appContext.Db)
 		token, err := SetUserToken(message.From.Id)
 		if err != nil {
 			return err
@@ -177,7 +183,7 @@ func SetUserToken(userId int) (string, error) {
 		UserID:    userId,
 	}
 
-	if err := appContext.Db.Create(t).Error; err != nil {
+	if err := appContext.Db.Save(t).Error; err != nil {
 		return "", err
 	}
 	return t.Token, nil
