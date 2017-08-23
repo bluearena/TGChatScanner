@@ -13,12 +13,14 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
 
 const (
-	UserStatsUrl = "/stats"
+	UserStatsUrl     = "/stats"
+	MaxFailedUpdates = 100
 )
 
 var (
@@ -31,8 +33,8 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 	sys_l := req.Context().Value(sysLoggerKey).(*log.Logger)
 	if err != nil {
 		sys_l.Printf("Error during reading bot request: %s", err)
-		logHttpRequest(acc_l, req, http.StatusInternalServerError)
-		w.WriteHeader(http.StatusInternalServerError)
+		logHttpRequest(acc_l, req, http.StatusOK)
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 
@@ -44,6 +46,20 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	upid := update.UpdateId
+	upidKey := strconv.Itoa(upid)
+	up_num, err := appContext.Cache.IncrementInt(upidKey, 1)
+
+	if err != nil {
+		appContext.Cache.Set(upidKey, 1, time.Minute)
+		up_num = 1
+	}
+	if up_num > MaxFailedUpdates {
+		logHttpRequest(acc_l, req, http.StatusInternalServerError)
+		sys_l.Printf("Max failed updates number exceeded on %d", upid)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 
 	var message *TGBotApi.Message
 
@@ -51,6 +67,9 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 		message = update.Message
 	} else if update.EditedMessage != nil {
 		message = update.EditedMessage
+	}
+	if message.Chat.Username != "" {
+		message.Chat.Title = message.Chat.Username
 	}
 
 	ctx := make(map[string]interface{})

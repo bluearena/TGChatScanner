@@ -81,7 +81,24 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 
 	values := req.URL.Query()
 
-	chat_id, err := strconv.ParseInt(values["chat_id"][0], 10, 64)
+	chatid, ok := values["chat_id"]
+
+	if !ok {
+		response := TagsJSON{Err: "invalid chat_id",
+			Tags: nil}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			err_l.Println(err)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusBadRequest)
+		logHttpRequest(acc_l, req, http.StatusBadRequest)
+		return
+	}
+
+	chat_id, err := strconv.ParseInt(chatid[0], 10, 64)
 
 	if err != nil {
 		response := TagsJSON{Err: "invalid chat_id",
@@ -114,7 +131,6 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		writeResponse(w, string(responseJSON), http.StatusBadRequest)
-
 		logHttpRequest(acc_l, req, http.StatusBadRequest)
 		return
 	} else {
@@ -138,26 +154,7 @@ func getUserTags(w http.ResponseWriter, req *http.Request) {
 	err_l := appContext.SysLogger
 	acc_l := appContext.AccessLogger
 
-	values := req.URL.Query()
-
-	user_id, err := strconv.ParseInt(values["user_id"][0], 10, 32)
-
-	if err != nil {
-		response := TagsJSON{Err: "invalid chat_id",
-			Tags: nil}
-		responseJSON, err := json.Marshal(response)
-		if err != nil {
-			writeResponse(w, nil, http.StatusInternalServerError)
-			err_l.Println(err)
-			logHttpRequest(acc_l, req, http.StatusInternalServerError)
-			return
-		}
-		writeResponse(w, string(responseJSON), http.StatusBadRequest)
-		logHttpRequest(acc_l, req, http.StatusBadRequest)
-		return
-	}
-
-	user := models.User{TGID: int(user_id)}
+	user := req.Context().Value(user_key).(*models.User)
 
 	tags, err := user.GetTags(appContext.Db)
 
