@@ -11,7 +11,7 @@ type Image struct {
 	Src    string    `json:"src"`
 	Tags   []Tag     `gorm:"many2many:images_tags"`
 	Date   time.Time `gorm:"not null" json:"date"`
-	ChatID int64    `gorm:"not null" json:"-"`
+	ChatID int64     `gorm:"not null" json:"-"`
 	Chat   Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID"`
 }
 
@@ -50,17 +50,15 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 	}
 
 	ch := Chat{
-		TGID:img.ChatID,
+		TGID: img.ChatID,
 	}
 	tx := db.Begin()
 	for _, t := range tags {
-		if err := t.SaveIfUnique(db);
-			err != nil {
+		if err := t.SaveIfUnique(db); err != nil {
 			tx.Rollback()
 			return err
 		}
-		if err := db.Model(t).Association("Chats").Append(ch).Error;
-			err != nil{
+		if err := db.Model(t).Association("Chats").Append(ch).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
