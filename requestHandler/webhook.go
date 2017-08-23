@@ -92,7 +92,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 }
 
 func BotCommandRouter(message *TGBotApi.Message) error {
-	r := regexp.MustCompile(`\/(start(?:group)?|mystats|wantscan)?\s*`)
+	r := regexp.MustCompile(`/(start(?:group)?|mystats|wantscan)?\s*`)
 	command := r.FindStringSubmatch(message.Text)
 	if len(command) == 0 {
 		return ErrUnexpectedCommand
@@ -114,7 +114,7 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 		_, err = appContext.BotApi.SendMessage(message.Chat.Id, hello, true)
 		return err
 	case "wantscan":
-		err := AddSubsription(&message.From, &message.Chat)
+		err := AddSubscription(&message.From, &message.Chat)
 		return err
 	case "mystats":
 		usr := models.User{
@@ -135,7 +135,7 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 	}
 	return nil
 }
-func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
+func AddSubscription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
 	var username string
 	if user.UserName != "" {
 		username = user.UserName

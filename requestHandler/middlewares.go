@@ -32,6 +32,10 @@ func middlewareLogin(next http.Handler) http.Handler {
 				}
 			}
 
+			//memcache := appContext.Cache
+			//
+			////tok := memcache.GetWithExpiration()
+			//
 			tok := models.Token{Token: token}
 
 			user := tok.GetUserByToken(appContext.Db)
