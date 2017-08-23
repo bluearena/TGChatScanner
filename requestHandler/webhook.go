@@ -92,7 +92,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 }
 
 func BotCommandRouter(message *TGBotApi.Message) error {
-	r := regexp.MustCompile(`\/(start(?:group)?|mystats|wantscan)?\s*`)
+	r := regexp.MustCompile(`/(start(?:group)?|mystats|wantscan)?\s*`)
 	command := r.FindStringSubmatch(message.Text)
 	if len(command) == 0 {
 		return ErrUnexpectedCommand
@@ -107,7 +107,7 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 		}
 		return ch.CreateIfNotExists(appContext.Db)
 	case "wantscan":
-		err := AddSubsription(&message.From, &message.Chat)
+		err := AddSubscription(&message.From, &message.Chat)
 		return err
 	case "mystats":
 		token, err := SetUserToken(message.From.Id)
@@ -122,7 +122,7 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 	}
 	return nil
 }
-func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
+func AddSubscription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
 	var username string
 	if user.UserName != "" {
 		username = user.UserName
@@ -154,7 +154,7 @@ func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
 		return err
 	}
 	err = db.Model(u).Association("Chats").Append([]models.Chat{*ch}).Error
-	if err != nil{
+	if err != nil {
 		tx.Rollback()
 		return err
 	}
