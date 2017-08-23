@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/zwirec/TGChatScanner/models"
 	"net/http"
+	"time"
 )
 
 func middlewareLogin(next http.Handler) http.Handler {
@@ -32,13 +33,19 @@ func middlewareLogin(next http.Handler) http.Handler {
 				}
 			}
 
-			//memcache := appContext.Cache
-			//
-			////tok := memcache.GetWithExpiration()
-			//
-			tok := models.Token{Token: token}
+			memcache := appContext.Cache
 
-			user := tok.GetUserByToken(appContext.Db)
+			user, expire, _ := memcache.GetWithExpiration(token)
+
+			if user == nil || expire.Before(time.Now().Add(2*time.Minute)) {
+				tok := models.Token{Token: token}
+				expired_to := tok.ExpiredTo
+				user = tok.GetUserByToken(appContext.Db)
+				if expired_to.Add(time.Minute).Before(time.Now()) {
+					memcache.Set(token, user, time.Minute)
+				}
+
+			}
 
 			if user == nil {
 				response := UserJSON{Err: "incorrect user_id or tokens lifetime is expired",

@@ -28,3 +28,8 @@ func (t *Token) GetUserByToken(db *gorm.DB) *User {
 	}
 	return nil
 }
+
+func (t *Token) GetExpire(db gorm.DB) time.Time {
+	db.Model(&Token{}).Where("token = ?", t.Token).Find(t)
+	return t.ExpiredTo
+}

@@ -39,7 +39,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 	var update TGBotApi.Update
 	err = json.Unmarshal(body, &update)
 	if err != nil {
-		sys_l.Printf("Error during unmarshaling request: %s", req.URL.String(), err)
+		sys_l.Printf("error during unmarshaling request: %s: %s", req.URL.String(), err)
 		logHttpRequest(acc_l, req, http.StatusInternalServerError)
 		w.WriteHeader(http.StatusInternalServerError)
 		return

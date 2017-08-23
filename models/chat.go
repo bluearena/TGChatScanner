@@ -7,13 +7,13 @@ import (
 )
 
 type Chat struct {
-	TGID      int64      `gorm:"primary_key"`
+	TGID      int64      `gorm:"primary_key" json:"chat_id"`
 	CreatedAt time.Time  `json:"-"`
 	DeletedAt *time.Time `json:"-"`
 	Title     string     `json:"title"`
 	Users     []User     `json:"-"`
 	Images    []Image    `gorm:"ForeignKey:TGID;AssociationForeignKey:ChatID" json:"images,omitempty"`
-	Tags      []Tag      `gorm:"many2many:chats_tags;AssociationForeignKey:ID;ForeignKey:TGID"`
+	Tags      []Tag      `gorm:"many2many:chats_tags;AssociationForeignKey:ID;ForeignKey:TGID" json:"tags,omitempty"`
 }
 
 func (ch *Chat) GetTags(db *gorm.DB) ([]Tag, error) {
