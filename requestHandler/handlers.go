@@ -197,26 +197,7 @@ func getChats(w http.ResponseWriter, req *http.Request) {
 	err_l := appContext.SysLogger
 	acc_l := appContext.AccessLogger
 
-	values := req.URL.Query()
-
-	user_id, err := strconv.ParseInt(values["user_id"][0], 10, 32)
-
-	if err != nil {
-		response := ChatsJSON{Err: "invalid user_id",
-			Chats: nil}
-		responseJSON, err := json.Marshal(response)
-		if err != nil {
-			writeResponse(w, nil, http.StatusInternalServerError)
-			err_l.Println(err)
-			logHttpRequest(acc_l, req, http.StatusInternalServerError)
-			return
-		}
-		writeResponse(w, string(responseJSON), http.StatusBadRequest)
-		logHttpRequest(acc_l, req, http.StatusBadRequest)
-		return
-	}
-
-	user := models.User{TGID: int(user_id)}
+	user := req.Context().Value(user_key).(models.User)
 
 	if err := user.GetUsersChats(appContext.Db); err != nil {
 		err_l.Println(err)
