@@ -197,7 +197,7 @@ func getChats(w http.ResponseWriter, req *http.Request) {
 	err_l := appContext.SysLogger
 	acc_l := appContext.AccessLogger
 
-	user := req.Context().Value(user_key).(models.User)
+	user := req.Context().Value(user_key).(*models.User)
 
 	if err := user.GetUsersChats(appContext.Db); err != nil {
 		err_l.Println(err)
