@@ -76,7 +76,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 		appContext.DownloadRequests <- fb
 	} else if len(message.Entities) != 0 && message.Entities[0].Type == "bot_command" {
 		if err := BotCommandRouter(message); err != nil {
-			sys_l.Printf("Command: %s, error: %s", err)
+			sys_l.Println(err)
 			if err == ErrUnexpectedCommand {
 				logHttpRequest(acc_l, req, http.StatusOK)
 				w.WriteHeader(http.StatusOK)
@@ -87,11 +87,12 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
+	logHttpRequest(acc_l,req,http.StatusOK)
 	w.WriteHeader(http.StatusOK)
 }
 
 func BotCommandRouter(message *TGBotApi.Message) error {
-	r := regexp.MustCompile(`\/(start(?:group)?|mystats)?\s*`)
+	r := regexp.MustCompile(`\/(start(?:group)?|mystats|wantscan)?\s*`)
 	command := r.FindStringSubmatch(message.Text)
 	if len(command) == 0 {
 		return ErrUnexpectedCommand
@@ -108,7 +109,6 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 		if err != nil {
 			return err
 		}
-
 		us := BuildUserStatUrl(token)
 		_, err = appContext.BotApi.SendMessage(message.Chat.Id, us, true)
 		if err != nil {
@@ -117,7 +117,7 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 	}
 	return nil
 }
-func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) error {
+func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
 	var username string
 	if user.UserName != "" {
 		username = user.UserName
@@ -130,13 +130,24 @@ func AddSubsription(user *TGBotApi.User, chat *TGBotApi.Chat) error {
 		TGID:  chat.Id,
 		Title: chat.Title,
 	}
-	u := &models.User{
+	u := models.User{
 		TGID:     user.Id,
 		Username: username,
-		Chats:    []models.Chat{ch},
 	}
 
-	return db.Save(u).Error
+	uNew := db.NewRecord(&u)
+	if uNew {
+		u.Chats = []models.Chat{ch}
+		return db.Create(&u).Error
+	}
+
+	chNew := db.NewRecord(&ch)
+	if !chNew {
+		return db.Model(&u).Association("Chats").Append([]models.Chat{ch}).Error
+	}
+
+	ch.Users = []models.User{u}
+	return db.Create(&ch).Error
 }
 
 func SetUserToken(userId int) (string, error) {
