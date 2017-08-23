@@ -3,8 +3,12 @@ package requestHandler
 import (
 	"context"
 	"encoding/json"
+	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"github.com/zwirec/TGChatScanner/models"
+	"io/ioutil"
+	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -17,7 +21,6 @@ func middlewareLogin(next http.Handler) http.Handler {
 			token := req.Header.Get("X-User-Token")
 
 			if token == "" {
-
 				response := UserJSON{Err: "X-User-Token isn't set",
 					Model: nil}
 
@@ -80,5 +83,72 @@ func middlewareLogin(next http.Handler) http.Handler {
 			}
 		}
 
+	})
+}
+
+func ChatAutoStore(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		body, err := ioutil.ReadAll(req.Body)
+		acc_l := req.Context().Value(accLoggerKey).(*log.Logger)
+		sys_l := req.Context().Value(sysLoggerKey).(*log.Logger)
+		if err != nil {
+			sys_l.Printf("error during reading bot request: %s", err)
+			logHttpRequest(acc_l, req, http.StatusOK)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		var update TGBotApi.Update
+		err = json.Unmarshal(body, &update)
+		if err != nil {
+			sys_l.Printf("error during unmarshaling request: %s: %s", req.URL.String(), err)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		upid := update.UpdateId
+		upidKey := strconv.Itoa(upid)
+		up_num, err := appContext.Cache.IncrementInt(upidKey, 1)
+
+		if err != nil {
+			appContext.Cache.Set(upidKey, 1, time.Minute)
+			up_num = 1
+		}
+		if up_num > MaxFailedUpdates {
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			sys_l.Printf("Max failed updates number exceeded on %d", upid)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		var message *TGBotApi.Message
+
+		if update.Message != nil {
+			message = update.Message
+		} else if update.EditedMessage != nil {
+			message = update.EditedMessage
+		}
+		if message.Chat.Username != "" {
+			message.Chat.Title = message.Chat.Username
+		}
+		title := message.Chat.Title
+		if title == "" {
+			title = message.Chat.Username
+		}
+
+		chat := &models.Chat{
+			TGID:  message.Chat.Id,
+			Title: title,
+		}
+		err = chat.CreateIfNotExists(appContext.Db)
+		if err != nil {
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		ctx := context.WithValue(req.Context(), messageKey, message)
+
+		next.ServeHTTP(w, req.WithContext(ctx))
+		return
 	})
 }
