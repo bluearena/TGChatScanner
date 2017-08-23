@@ -45,12 +45,17 @@ func (fp *ForkersPool) Run(out1queue int, out2queue int, finished sync.WaitGroup
 
 func (fp *ForkersPool) fork() {
 	for in := range fp.In {
+		appContext.SysLogger.Printf("comes on fork: %+v", *in)
 		if in.Error != nil {
 			continue
 		}
 		out1, err1 := fp.ForkToFileLink(in)
 		out2, err2 := fp.ForkToFileInfo(in)
 		if err1 == nil && err2 == nil {
+
+			appContext.SysLogger.Printf("comes from fork1: %+v", *out1)
+
+			appContext.SysLogger.Printf("comes from fork2: %+v", *out2)
 			select {
 			case fp.Out1 <- out1:
 				select {
@@ -68,12 +73,16 @@ func (fp *ForkersPool) fork() {
 				return
 			}
 		} else if err1 != nil && err2 == nil {
+			appContext.SysLogger.Printf("comes from fork1: %+v", *out1)
+
 			select {
 			case fp.Out2 <- out2:
 			case <-fp.Done:
 				return
 			}
 		} else if err1 == nil && err2 != nil {
+			appContext.SysLogger.Printf("comes from fork2: %+v", *out2)
+
 			select {
 			case fp.Out1 <- out1:
 			case <-fp.Done:

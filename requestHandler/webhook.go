@@ -2,18 +2,14 @@ package requestHandler
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"github.com/rs/xid"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"github.com/zwirec/TGChatScanner/models"
-	"io/ioutil"
-	"log"
 	"mime"
 	"net/http"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -28,59 +24,21 @@ var (
 )
 
 func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
-	body, err := ioutil.ReadAll(req.Body)
-	acc_l := req.Context().Value(accLoggerKey).(*log.Logger)
-	sys_l := req.Context().Value(sysLoggerKey).(*log.Logger)
-	if err != nil {
-		sys_l.Printf("Error during reading bot request: %s", err)
-		logHttpRequest(acc_l, req, http.StatusOK)
-		w.WriteHeader(http.StatusOK)
-		return
-	}
+	ctx := req.Context()
+	message := ctx.Value(messageKey).(*TGBotApi.Message)
 
-	var update TGBotApi.Update
-	err = json.Unmarshal(body, &update)
-	if err != nil {
-		sys_l.Printf("error during unmarshaling request: %s: %s", req.URL.String(), err)
-		logHttpRequest(acc_l, req, http.StatusInternalServerError)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	upid := update.UpdateId
-	upidKey := strconv.Itoa(upid)
-	up_num, err := appContext.Cache.IncrementInt(upidKey, 1)
+	accLog := appContext.AccessLogger
+	errLog := appContext.SysLogger
 
-	if err != nil {
-		appContext.Cache.Set(upidKey, 1, time.Minute)
-		up_num = 1
-	}
-	if up_num > MaxFailedUpdates {
-		logHttpRequest(acc_l, req, http.StatusInternalServerError)
-		sys_l.Printf("Max failed updates number exceeded on %d", upid)
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	var message *TGBotApi.Message
-
-	if update.Message != nil {
-		message = update.Message
-	} else if update.EditedMessage != nil {
-		message = update.EditedMessage
-	}
-	if message.Chat.Username != "" {
-		message.Chat.Title = message.Chat.Username
-	}
-
-	ctx := make(map[string]interface{})
-	ctx["from"] = message.Chat.Id
+	localCtx := make(map[string]interface{})
+	localCtx["from"] = message.Chat.Id
 
 	if message.Document != nil && isPicture(message.Document.MimeType) {
 		fb := &FileBasic{
 			FileId:  message.Document.FileId,
 			Type:    "photo",
 			Sent:    time.Unix(int64(message.Date), 0),
-			Context: ctx,
+			Context: localCtx,
 		}
 		appContext.DownloadRequests <- fb
 	}
@@ -90,23 +48,23 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 			FileId:  photo.FileId,
 			Type:    "photo",
 			Sent:    time.Unix(int64(message.Date), 0),
-			Context: ctx,
+			Context: localCtx,
 		}
 		appContext.DownloadRequests <- fb
 	} else if len(message.Entities) != 0 && message.Entities[0].Type == "bot_command" {
 		if err := BotCommandRouter(message); err != nil {
-			sys_l.Println(err)
+			errLog.Println(err)
 			if err == ErrUnexpectedCommand {
-				logHttpRequest(acc_l, req, http.StatusOK)
+				logHttpRequest(accLog, req, http.StatusOK)
 				w.WriteHeader(http.StatusOK)
 			} else {
-				logHttpRequest(acc_l, req, http.StatusInternalServerError)
+				logHttpRequest(accLog, req, http.StatusInternalServerError)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 			return
 		}
 	}
-	logHttpRequest(acc_l, req, http.StatusOK)
+	logHttpRequest(accLog, req, http.StatusOK)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -120,17 +78,8 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 	case "start":
 		fallthrough
 	case "startgroup":
-		ch := models.Chat{
-			TGID:  message.Chat.Id,
-			Title: message.Chat.Title,
-		}
-		err := ch.CreateIfNotExists(appContext.Db)
-		if err != nil {
-			return err
-		}
 		hello := "Hello, chat " + message.Chat.Title
-
-		_, err = appContext.BotApi.SendMessage(message.Chat.Id, hello, true)
+		_, err := appContext.BotApi.SendMessage(message.Chat.Id, hello, true)
 		return err
 	case "wantscan":
 		err := AddSubscription(&message.From, &message.Chat)
@@ -173,25 +122,18 @@ func AddSubscription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
 		Title: chat.Title,
 	}
 	tx := db.Begin()
-
-	err = ch.CreateIfNotExists(db)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	err = u.CreateIfNotExists(db)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	err = db.Model(u).Association("Chats").Append([]models.Chat{*ch}).Error
+	err = db.Model(u).Association("Chats").Append(*ch).Error
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+
+	return tx.Commit().Error
 }
 
 func SetUserToken(userId int) (string, error) {

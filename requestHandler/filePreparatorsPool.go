@@ -54,6 +54,7 @@ func (fpp *FilePreparatorsPool) Run(outBufferSize int, finished sync.WaitGroup) 
 
 func preparatorWorker(toPrepare chan *FileBasic, result chan *PreparedFile, done chan struct{}) {
 	for in := range toPrepare {
+		appContext.SysLogger.Printf("comes on prep: %+v",*in)
 		fileId := in.FileId
 		file, err := appContext.BotApi.PrepareFile(fileId)
 		if err != nil {
@@ -66,6 +67,7 @@ func preparatorWorker(toPrepare chan *FileBasic, result chan *PreparedFile, done
 			Basics:         in,
 		}
 		fpResult := &PreparedFile{fl, nil}
+		appContext.SysLogger.Printf("comes from prep: %+v",*fpResult)
 		select {
 		case result <- fpResult:
 		case <-done:

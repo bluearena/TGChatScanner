@@ -208,7 +208,6 @@ func (s *Service) endpoint() (err error) {
 	log.Println("Server started")
 	if err := s.srv.Serve(s.sock); err != nil {
 		s.sysLogger.Println(err)
-		//s.notifier <- syscall.SIGINT
 	}
 	return nil
 }
@@ -266,13 +265,6 @@ func (s *Service) handler(c chan os.Signal) {
 			s.sysLogger.Println(err)
 			return
 		}
-		//if err := s.sock.Close(); err != nil {
-		//	s.sysLogger.Println(err)
-		//}
-		//if err := os.Remove(s.config["server"]["socket"].(string)); err != nil {
-		//	s.sysLogger.Println(err)
-		//	return
-		//}
 		os.Exit(0)
 	}
 }
