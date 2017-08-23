@@ -1,22 +1,35 @@
 package models
 
-import "github.com/jinzhu/gorm"
+import (
+	"github.com/jinzhu/gorm"
+	"time"
+	"database/sql"
+)
 
 type Chat struct {
-	gorm.Model
-	TGID  uint64 `gorm:"primary_key:true" json:"chat_id"`
-	Title string `json:"title"`
-	Users []User `json:"-"`
-	//Image uint
-	Images []Image `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID" json:"images,omitempty"`
+	TGID      int64 `gorm:"primary_key"`
+	CreatedAt time.Time
+	DeletedAt *time.Time
+	Title     string  `json:"title"`
+	Users     []User  `json:"-"`
+	Images    []Image `gorm:"ForeignKey:TGID;AssociationForeignKey:ChatID" json:"images,omitempty"`
+	Tags      []Tag   `gorm:"many2many:chats_tags;AssociationForeignKey:ID;ForeignKey:TGID"`
 }
 
-type User_Chat struct {
-	ID     uint64
-	ChatID uint64
-	UserID uint64
+func (ch *Chat) GetTags(db *gorm.DB) ([]Tag, error) {
+	db.Model(&Chat{}).
+		Preload("Tags").
+		Where("tg_id = ?", ch.TGID).
+		Find(ch)
+	return ch.Tags, db.Error
 }
 
-func (User_Chat) TableName() string {
-	return "users_chats"
+func (ch *Chat) CreateIfNotExists(db *gorm.DB) (error){
+	err := db.Set("gorm:insert_option","ON CONFLICT ON CONSTRAINT chats_pkey DO NOTHING").
+			Create(ch).
+			Error
+	if err == sql.ErrNoRows{
+		return nil
+	}
+	return err
 }

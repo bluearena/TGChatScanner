@@ -16,7 +16,7 @@ type Message struct {
 	Text      string          `json:"text"`
 	Entities  []MessageEntity `json:"entities,omitempty"`
 	Photo     []PhotoSize     `json:"photo, omitempty"`
-	Document  *Document `json:"document"`
+	Document  *Document       `json:"document"`
 }
 
 type MessageEntity struct {
@@ -33,7 +33,7 @@ type PhotoSize struct {
 }
 
 type User struct {
-	Id           int `json:"id"`
+	Id           int   `json:"id"`
 	FirstName    string `json:"first_name"`
 	LastName     string `json:"last_name,omitempty"`
 	UserName     string `json:"user_name, omitempty"`
@@ -41,7 +41,7 @@ type User struct {
 }
 
 type Chat struct {
-	Id                          int64     `json:"id"`
+	Id                          int64    `json:"id"`
 	Type                        string    `json:"type"`
 	Title                       string    `json:"title, omitempty"`
 	Username                    string    `json:"username, omitempty"`
@@ -72,13 +72,13 @@ type File struct {
 type SendMessageRequest struct {
 	ChatId                int64 `json:"chat_id"`
 	Text                  string `json:"text"`
-	DisableWebPagePreview bool `json:"disable_web_page_preview, omitempty"`
+	DisableWebPagePreview bool   `json:"disable_web_page_preview, omitempty"`
 }
 
 type Document struct {
-	FileId   string `json:"file_id"`
-	Thumb    []PhotoSize `json:"thumb"`
-	FileName string `json:"file_name"`
-	MimeType string `json:"mime_type"`
-	FileSize int `json:"file_size"`
+	FileId   string    `json:"file_id"`
+	Thumb    PhotoSize `json:"thumb"`
+	FileName string    `json:"file_name"`
+	MimeType string    `json:"mime_type"`
+	FileSize int       `json:"file_size"`
 }

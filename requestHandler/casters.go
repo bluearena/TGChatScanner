@@ -14,7 +14,7 @@ func CastToFileLink(pf *PreparedFile) (*FileLink, error) {
 	if pf.Error != nil {
 		return nil, pf.Error
 	}
-	return &pf.Link, nil
+	return pf.Link, nil
 }
 
 func CastToFileInfo(pf *PreparedFile) (*FileInfo, error) {
@@ -26,15 +26,15 @@ func CastToFileInfo(pf *PreparedFile) (*FileInfo, error) {
 
 func CastFromDownloadedFile(df *DownloadedFile) (*CompleteFile, error) {
 	if df.Error != nil {
-		appContext.Logger.Printf("invalid downloaded file on defork: %s", df.Error)
+		appContext.SysLogger.Printf("invalid downloaded file on defork: %s", df.Error)
 		return nil, df.Error
 	}
 	fID := df.Link.Basics.FileId
-	exists := appContext.Cache.Add(fID, &df.Link, cache.DefaultExpiration)
+	exists := appContext.Cache.Add(fID, df.Link, cache.DefaultExpiration)
 	if exists != nil {
 		tags, _ := appContext.Cache.Get(fID)
 		df.Link.Basics.Context["tags"] = tags
-		link := (*CompleteFile)(&df.Link)
+		link := (*CompleteFile)(df.Link)
 		return link, nil
 	}
 	return nil, ErrBadDeforkAttempt
@@ -42,7 +42,7 @@ func CastFromDownloadedFile(df *DownloadedFile) (*CompleteFile, error) {
 
 func CastFromRecognizedPhoto(rp *RecognizedPhoto) (*CompleteFile, error) {
 	if rp.Error != nil {
-		appContext.Logger.Printf("invalid recognized photo on defork: %s", rp.Error)
+		appContext.SysLogger.Printf("invalid recognized photo on defork: %s", rp.Error)
 		return nil, rp.Error
 	}
 	fID := rp.FileId

@@ -1,7 +1,7 @@
 package requestHandler
 
 import (
-	"fmt"
+	"github.com/zwirec/TGChatScanner/models"
 	"sync"
 )
 
@@ -28,13 +28,13 @@ func (dsp *DbStoragersPool) Run(finished sync.WaitGroup) {
 
 func (dsp *DbStoragersPool) runStorager() {
 	for in := range dsp.In {
-		appContext.Logger.Printf("Comes to db: %+v", *in)
-		//TODO: Acctually store file in the db
-		switch in.Basics.Type {
-		case "photo":
-			fmt.Errorf("Photo to db\n")
-		case "chatPhoto":
-			fmt.Errorf("ChatPhoto to db\n")
+		img := &models.Image{
+			Src:    in.LocalPath,
+			ChatID: in.Basics.Context["from"].(int64),
+		}
+		tags := in.Basics.Context["tags"].([]string)
+		if err := img.CreateImageWithTags(appContext.Db, tags); err != nil {
+			appContext.SysLogger.Printf("failed on storaging image: %s", err)
 		}
 	}
 }

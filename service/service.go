@@ -44,22 +44,22 @@ type Config map[string]map[string]interface{}
 
 //Service s
 type Service struct {
-	sock        net.Listener
-	mux         *http.ServeMux
-	srv         *http.Server
-	rAPIHandler *requestHandler.RequestHandler
-	config      Config
-	logger      *log.Logger
-	notifier    chan os.Signal
-	poolsWG     sync.WaitGroup
-	poolsDone   chan struct{}
+	sock         net.Listener
+	mux          *http.ServeMux
+	srv          *http.Server
+	rAPIHandler  *requestHandler.RequestHandler
+	config       Config
+	sysLogger    *log.Logger
+	accessLogger *log.Logger
+	notifier     chan os.Signal
+	poolsWG      sync.WaitGroup
+	poolsDone    chan struct{}
 }
 
 func NewService() *Service {
 	return &Service{
 		rAPIHandler: requestHandler.NewRequestHandler(),
 		mux:         http.NewServeMux(),
-		logger:      log.New(os.Stdout, "", log.LstdFlags),
 		notifier:    make(chan os.Signal),
 		poolsDone:   make(chan struct{}),
 	}
@@ -67,8 +67,20 @@ func NewService() *Service {
 
 func (s *Service) Run() error {
 
+	errorlog, err := os.OpenFile("error.log", os.O_APPEND|os.O_WRONLY, 0777)
+	if err != nil {
+		errorlog = os.Stderr
+	}
+	accesslog, err := os.OpenFile("access.log", os.O_APPEND|os.O_WRONLY, 0777)
+	if err != nil {
+		accesslog = os.Stdout
+	}
+
+	s.sysLogger = log.New(errorlog, "", log.LstdFlags|log.Llongfile)
+	s.accessLogger = log.New(accesslog, "", log.LstdFlags)
+
 	if err := s.parseConfig(configUrl); err != nil {
-		s.logger.Println(err)
+		s.sysLogger.Println(err)
 		return err
 	}
 
@@ -77,11 +89,13 @@ func (s *Service) Run() error {
 	db, err := modelManager.ConnectToDB(s.config["db"])
 
 	if err != nil {
-		s.logger.Println(err)
+		s.sysLogger.Println(err)
 		return err
 	}
 
-	modelManager.InitDB(db)
+	if err := modelManager.InitDB(db); err != nil {
+		s.sysLogger.Println(err)
+	}
 
 	clApi := clarifaiApi.NewClarifaiApi(s.config["clarifai"]["api_key"].(string))
 
@@ -95,14 +109,14 @@ func (s *Service) Run() error {
 
 	dr := make(chan *requestHandler.FileBasic, workers_n*2)
 
-	poolStoper := make(chan struct{})
+	poolStopper := make(chan struct{})
 
-	fp := &requestHandler.FilePreparatorsPool{In: dr, Done: poolStoper, WorkersNumber: workers_n}
+	fp := &requestHandler.FilePreparatorsPool{In: dr, Done: poolStopper, WorkersNumber: workers_n}
 	fpOut := fp.Run(workers_n*2, s.poolsWG)
 
 	forker := &requestHandler.ForkersPool{
 		In:             fpOut,
-		Done:           poolStoper,
+		Done:           poolStopper,
 		WorkersNumber:  workers_n,
 		ForkToFileInfo: requestHandler.CastToFileInfo,
 		ForkToFileLink: requestHandler.CastToFileLink,
@@ -110,10 +124,10 @@ func (s *Service) Run() error {
 
 	fdIn, prIn := forker.Run(workers_n, workers_n, s.poolsWG)
 
-	fd := &requestHandler.FileDownloadersPool{In: fdIn, Done: poolStoper, WorkersNumber: workers_n}
+	fd := &requestHandler.FileDownloadersPool{In: fdIn, Done: poolStopper, WorkersNumber: workers_n}
 	fdOut := fd.Run(workers_n, s.poolsWG)
 
-	pr := &requestHandler.PhotoRecognizersPool{In: prIn, Done: poolStoper, WorkersNumber: workers_n}
+	pr := &requestHandler.PhotoRecognizersPool{In: prIn, Done: poolStopper, WorkersNumber: workers_n}
 	prOut := pr.Run(workers_n, s.poolsWG)
 
 	deforker := &requestHandler.DeforkersPool{
@@ -131,17 +145,22 @@ func (s *Service) Run() error {
 
 	cache := memcache.New(5*time.Minute, 10*time.Minute)
 
-	imgPath := s.config["chatscanner"]["images_path"].(string)
-	os.MkdirAll(imgPath, os.ModePerm)
-	hostname := s.config["chatscanner"]["host"].(string)
+	imgPath, ok := s.config["chatscanner"]["images_path"].(string)
+
+	if err := os.MkdirAll(imgPath, os.ModePerm); err != nil {
+		s.sysLogger.Println(err)
+	}
+
+	hostname, ok := s.config["chatscanner"]["host"].(string)
 
 	_, err = url.Parse(hostname)
 
 	if err != nil {
 		hostname, err = os.Hostname()
-	}
-	if err != nil {
-		hostname = "localhost"
+		if err != nil {
+			s.sysLogger.Println(err)
+			hostname = "localhost"
+		}
 	}
 
 	context := requestHandler.AppContext{
@@ -150,7 +169,8 @@ func (s *Service) Run() error {
 		BotApi:           botApi,
 		CfApi:            clApi,
 		Cache:            cache,
-		Logger:           s.logger,
+		SysLogger:        s.sysLogger,
+		AccessLogger:     s.accessLogger,
 		ImagesPath:       imgPath,
 		Hostname:         hostname,
 	}
@@ -159,31 +179,36 @@ func (s *Service) Run() error {
 	s.rAPIHandler.RegisterHandlers()
 
 	s.srv = &http.Server{Handler: s.rAPIHandler}
-	defer close(poolStoper)
+
+	defer close(poolStopper)
+
 	var wg sync.WaitGroup
 	wg.Add(1)
+
 	go s.endpoint()
+
 	wg.Wait()
 	return nil
 }
 
 func (s *Service) endpoint() (err error) {
-
 	s.sock, err = net.Listen("unix", s.config["server"]["socket"].(string))
-
 	if err != nil {
-		s.logger.Println(err)
-		s.notifier <- syscall.SIGINT
+		s.sysLogger.Println(err)
+		os.Remove(s.config["server"]["socket"].(string))
+		s.sock, _ = net.Listen("unix", s.config["server"]["socket"].(string))
 	}
 	if err := os.Chmod(s.config["server"]["socket"].(string), 0777); err != nil {
-		s.logger.Println(err)
+		s.sysLogger.Println(err)
 		s.notifier <- syscall.SIGINT
 	}
-	s.logger.Println("Socket opened")
-	s.logger.Println("Server started")
+
+	s.sysLogger.Println("Socket opened")
+	s.sysLogger.Println("Server started")
+	log.Println("Server started")
 	if err := s.srv.Serve(s.sock); err != nil {
-		s.logger.Println(err)
-		s.notifier <- syscall.SIGINT
+		s.sysLogger.Println(err)
+		//s.notifier <- syscall.SIGINT
 	}
 	return nil
 }
@@ -196,14 +221,14 @@ func (s *Service) parseConfig(_url string) error {
 	if err == nil {
 		res, err := http.Get(_url)
 		if err != nil {
-			s.logger.Println(err)
+			s.sysLogger.Println(err)
 			return err
 		}
 
 		configRaw, err = ioutil.ReadAll(res.Body)
 		res.Body.Close()
 		if err != nil {
-			s.logger.Println(err)
+			s.sysLogger.Println(err)
 			return err
 		}
 
@@ -211,13 +236,13 @@ func (s *Service) parseConfig(_url string) error {
 		var err error
 		configRaw, err = ioutil.ReadFile(_url)
 		if err != nil {
-			s.logger.Println(err)
+			s.sysLogger.Println(err)
 			return err
 		}
 	}
 
 	if err := json.Unmarshal(configRaw, &s.config); err != nil {
-		s.logger.Println(err)
+		s.sysLogger.Println(err)
 		return err
 	}
 
@@ -233,12 +258,21 @@ func (s *Service) signalProcessing() {
 func (s *Service) handler(c chan os.Signal) {
 	for {
 		<-c
-		log.Print("Gracefully stopping...")
+		s.sysLogger.Println("Gracefully stopping...")
+		log.Println("Gracefully stopping...")
 		close(s.poolsDone)
 		s.poolsWG.Wait()
-		s.srv.Shutdown(nil)
-		s.sock.Close()
-		os.Remove(s.config["server"]["socket"].(string))
+		if err := s.srv.Shutdown(nil); err != nil {
+			s.sysLogger.Println(err)
+			return
+		}
+		//if err := s.sock.Close(); err != nil {
+		//	s.sysLogger.Println(err)
+		//}
+		//if err := os.Remove(s.config["server"]["socket"].(string)); err != nil {
+		//	s.sysLogger.Println(err)
+		//	return
+		//}
 		os.Exit(0)
 	}
 }

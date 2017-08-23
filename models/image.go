@@ -9,11 +9,10 @@ import (
 type Image struct {
 	gorm.Model
 	Src    string    `json:"src"`
-	Tags   []Tag     `sql:"many2many:images_tags"`
-	Date   time.Time `sql:"not null" json:"date"`
-	ChatID uint64    `sql:"not null" json:"-"`
-	//OtherID uint64
-	Chat Chat `gorm:"ForeignKey:TGID;AssociationForeignKey:ChatID"`
+	Tags   []Tag     `gorm:"many2many:images_tags"`
+	Date   time.Time `gorm:"not null" json:"date"`
+	ChatID int64    `gorm:"not null" json:"-"`
+	Chat   Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID"`
 }
 
 func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) ([]Image, error) {
@@ -42,4 +41,25 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) ([]Image, error
 	}
 
 	return img_slice, nil
+}
+
+func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
+	var tags []*Tag
+	for _, t := range ts {
+		tags = append(tags, &Tag{Name: t})
+	}
+	tx := db.Begin()
+	for _, t := range tags {
+		if err := t.SaveIfUnique(db);
+			err != nil {
+			tx.Rollback()
+			return err
+		}
+		img.Tags = append(img.Tags, *t)
+	}
+	if err := db.Save(img).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit().Error
 }

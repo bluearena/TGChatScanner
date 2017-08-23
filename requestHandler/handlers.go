@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/zwirec/TGChatScanner/models"
+	"log"
 	"net/http"
-	"net/url"
 	"strconv"
 )
 
@@ -15,7 +15,7 @@ type UserJSON struct {
 }
 
 type ImagesJSON struct {
-	Err    error          `json:"error"`
+	Err    string         `json:"error"`
 	Images []models.Image `json:"images"`
 }
 
@@ -24,69 +24,215 @@ type ChatsJSON struct {
 	Chats []models.Chat `json:"chats"`
 }
 
+type TagsJSON struct {
+	Err  string       `json:"error"`
+	Tags []models.Tag `json:"tags"`
+}
+
 var user_key = "user"
 
 func getImages(w http.ResponseWriter, req *http.Request) {
-	l := appContext.Logger
+	err_l := appContext.SysLogger
+	acc_l := appContext.AccessLogger
+
 	values := req.URL.Query()
 	img := models.Image{}
 
 	imgs, err := img.GetImgByParams(appContext.Db, values)
 
 	if err != nil {
-		l.Println(err)
+		response := ImagesJSON{Err: "server error",
+			Images: nil}
+		responseJSON, err := json.Marshal(response)
+
+		if err == nil {
+			writeResponse(w, string(responseJSON), http.StatusInternalServerError)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			return
+		} else {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			err_l.Println(err)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusTeapot)
+		logHttpRequest(acc_l, req, http.StatusTeapot)
 	}
-	response := ImagesJSON{Err: nil,
+
+	response := ImagesJSON{Err: "",
 		Images: imgs}
 	responseJSON, err := json.Marshal(response)
+
 	if err == nil {
 		writeResponse(w, string(responseJSON), http.StatusTeapot)
-		l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+		logHttpRequest(acc_l, req, http.StatusTeapot)
 		return
 	} else {
-		l.Println(err)
+		err_l.Println(err)
+		logHttpRequest(acc_l, req, http.StatusTeapot)
 		return
 	}
 	return
 }
 
-func restoreImages(w http.ResponseWriter, req *http.Request) {
-	//TODO
-	fmt.Fprint(w, "images.restore")
-	return
+func getChatTags(w http.ResponseWriter, req *http.Request) {
+	err_l := appContext.SysLogger
+	acc_l := appContext.AccessLogger
+
+	values := req.URL.Query()
+
+	chat_id, err := strconv.ParseInt(values["chat_id"][0], 10, 64)
+
+	if err != nil {
+		response := TagsJSON{Err: "invalid chat_id",
+			Tags: nil}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			err_l.Println(err)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusBadRequest)
+		logHttpRequest(acc_l, req, http.StatusBadRequest)
+		return
+	}
+
+	chat := models.Chat{TGID: chat_id}
+
+	tags, err := chat.GetTags(appContext.Db)
+
+	if err != nil {
+		err_l.Println(err)
+		response := TagsJSON{Err: "system error",
+			Tags: nil}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			err_l.Println(err)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusBadRequest)
+
+		logHttpRequest(acc_l, req, http.StatusBadRequest)
+		return
+	} else {
+		response := TagsJSON{Err: "",
+			Tags: tags}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			err_l.Println(err)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusOK)
+		logHttpRequest(acc_l, req, http.StatusOK)
+		return
+	}
+
 }
-func removeImages(w http.ResponseWriter, req *http.Request) {
-	//TODO
-	fmt.Fprint(w, "images.remove")
-	return
+
+func getUserTags(w http.ResponseWriter, req *http.Request) {
+	err_l := appContext.SysLogger
+	acc_l := appContext.AccessLogger
+
+	values := req.URL.Query()
+
+	user_id, err := strconv.ParseInt(values["user_id"][0], 10, 32)
+
+	if err != nil {
+		response := TagsJSON{Err: "invalid chat_id",
+			Tags: nil}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			err_l.Println(err)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusBadRequest)
+		logHttpRequest(acc_l, req, http.StatusBadRequest)
+		return
+	}
+
+	user := models.User{TGID: int(user_id)}
+
+	tags, err := user.GetTags(appContext.Db)
+
+	if err != nil {
+		err_l.Println(err)
+		response := TagsJSON{Err: "system error",
+			Tags: nil}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			err_l.Println(err)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusBadRequest)
+
+		logHttpRequest(acc_l, req, http.StatusBadRequest)
+		return
+	} else {
+		response := TagsJSON{Err: "",
+			Tags: tags}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			err_l.Println(err)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusOK)
+		logHttpRequest(acc_l, req, http.StatusOK)
+		return
+	}
+
 }
 
 func getChats(w http.ResponseWriter, req *http.Request) {
-	l := appContext.Logger
+	err_l := appContext.SysLogger
+	acc_l := appContext.AccessLogger
+
 	values := req.URL.Query()
 
-	user_id, err := strconv.ParseUint(values["user_id"][0], 10, 64)
+	user_id, err := strconv.ParseInt(values["user_id"][0], 10, 32)
 
 	if err != nil {
-		l.Fatal(err)
+		response := ChatsJSON{Err: "invalid user_id",
+			Chats: nil}
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			writeResponse(w, nil, http.StatusInternalServerError)
+			err_l.Println(err)
+			logHttpRequest(acc_l, req, http.StatusInternalServerError)
+			return
+		}
+		writeResponse(w, string(responseJSON), http.StatusBadRequest)
+		logHttpRequest(acc_l, req, http.StatusBadRequest)
+		return
 	}
 
-	user := models.User{TGID: user_id}
+	user := models.User{TGID: int(user_id)}
 
 	if err := user.GetUsersChats(appContext.Db); err != nil {
-		l.Println(err)
+		err_l.Println(err)
 		response := ChatsJSON{Err: "system error",
 			Chats: nil}
 		responseJSON, _ := json.Marshal(response)
 		writeResponse(w, string(responseJSON), http.StatusInternalServerError)
-		l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+
+		logHttpRequest(acc_l, req, http.StatusInternalServerError)
 		return
 	} else {
 		response := ChatsJSON{Err: "",
 			Chats: user.Chats}
 		responseJSON, _ := json.Marshal(response)
 		writeResponse(w, string(responseJSON), http.StatusTeapot)
-		l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+		logHttpRequest(acc_l, req, http.StatusTeapot)
 		return
 	}
 }
@@ -103,23 +249,6 @@ func removeSubs(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func validateGETParams(values url.Values) (map[string]interface{}, bool) {
-	if values["user_id"] == nil || values["chat_id"] == nil || values["token"] == nil {
-		return nil, false
-	}
-	result := map[string]interface{}{}
-
-	var err error
-	result["user_id"], err = strconv.ParseUint(values["user_id"][0], 10, 64)
-	result["chat_id"], err = strconv.ParseUint(values["client_id"][0], 10, 64)
-
-	if err != nil {
-		return nil, false
-	}
-	result["token"] = values["token"]
-	return result, false
-}
-
 func validateLoginParams(values map[string]interface{}) (ok bool) {
 	if values["username"] == nil || values["password"] == nil {
 		return false
@@ -131,10 +260,13 @@ func writeResponse(w http.ResponseWriter, data interface{}, status int) error {
 	w.WriteHeader(status)
 	if data != nil {
 		_, err := fmt.Fprint(w, data)
-
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func logHttpRequest(l *log.Logger, req *http.Request, code int) {
+	l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, code)
 }
