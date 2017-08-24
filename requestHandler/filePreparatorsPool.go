@@ -5,7 +5,6 @@ import (
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
-	"log"
 )
 
 type FilePreparationsPool struct {
@@ -49,10 +48,12 @@ func preparationWorker(toPrepare chan *file.FileBasic, result chan *file.Prepare
 		if err != nil {
 			appContext.ErrLogger.Printf("incorrect url during preparation stage on %s: %s", in.FileId, err)
 		}
+		status := file.Undefiend
 		fl := &file.FileLink{
 			FileDownloadURL: url,
 			LocalPath:       BuildLocalPath(fileId),
 			Basics:          in,
+			Status: 		 &status,
 		}
 		fpResult := &file.PreparedFile{Link: fl}
 		appContext.ErrLogger.Printf("comes from prep: %+v", *fpResult)

@@ -10,7 +10,6 @@ type PhotoRecognizersPool struct {
 }
 
 type RecognizedPhoto struct {
-	FileId string
-	Tags   []string
-	Error  error
+	Link  *file.FileLink
+	Error error
 }

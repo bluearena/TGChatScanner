@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"sync"
-	"log"
 )
 
 type FileDownloadersPool struct {

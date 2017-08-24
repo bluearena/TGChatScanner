@@ -40,7 +40,7 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 			FileId:  message.Document.FileId,
 			Type:    "photo",
 			Sent:    time.Unix(int64(message.Date), 0),
-			Context: localCtx,
+			From:message.Chat.Id,
 		}
 		appContext.DownloadRequests <- fb
 	}
@@ -51,7 +51,7 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 			FileId:  photo.FileId,
 			Type:    "photo",
 			Sent:    time.Unix(int64(message.Date), 0),
-			Context: localCtx,
+			From:message.Chat.Id,
 		}
 		appContext.DownloadRequests <- fb
 	} else if len(message.Entities) != 0 && message.Entities[0].Type == "bot_command" {
@@ -124,13 +124,11 @@ func AddSubscription(user *TGBotAPI.User, chat *TGBotAPI.Chat) (err error) {
 		Username: username,
 	}
 	tx := db.Begin()
-	if err := tx.Model(&u).Association("Chats").Append(ch).Error;
-		err != nil{
+	if err := tx.Model(&u).Association("Chats").Append(ch).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
-	if err := u.CreateIfNotExists(tx);
-		err != nil{
+	if err := u.CreateIfNotExists(tx); err != nil {
 		tx.Rollback()
 		return err
 	}

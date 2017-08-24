@@ -5,7 +5,6 @@ import (
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
-	"log"
 )
 
 type DbStoragesPool struct {
@@ -34,10 +33,9 @@ func (dsp *DbStoragesPool) runStorager() {
 	for in := range dsp.In {
 		img := &models.Image{
 			Src:    in.LocalPath,
-			ChatID: in.Basics.Context["from"].(int64),
+			ChatID: in.Basics.From,
 		}
-		tags := in.Basics.Context["tags"].([]string)
-		if err := img.CreateImageWithTags(appContext.DB, tags); err != nil {
+		if err := img.CreateImageWithTags(appContext.DB, in.Basics.Tags); err != nil {
 			appContext.ErrLogger.Printf("failed on storing image: %s", err)
 		}
 	}

@@ -4,7 +4,6 @@ import (
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
-	"log"
 )
 
 func (fp *ForkersPool) Run(out1queue int, out2queue int, finished *sync.WaitGroup) (out1 chan *file.FileLink, out2 chan *file.FileInfo) {
@@ -31,7 +30,7 @@ func (fp *ForkersPool) Run(out1queue int, out2queue int, finished *sync.WaitGrou
 
 func (fp *ForkersPool) fork() {
 	for in := range fp.In {
-		appContext.ErrLogger.Printf("comes on fork: %+v", *in)
+		appContext.ErrLogger.Printf("comes on fork: %+v\n%+v", *in.Link,*in.Link.Basics)
 		if in.Error != nil {
 			continue
 		}
@@ -39,9 +38,9 @@ func (fp *ForkersPool) fork() {
 		out2, err2 := fp.ForkToFileInfo(in)
 		if err1 == nil && err2 == nil {
 
-			appContext.ErrLogger.Printf("comes from fork1: %+v", *out1)
+			appContext.ErrLogger.Printf("comes from fork1: %+v\n%+v", *out1, *out1.Basics)
 
-			appContext.ErrLogger.Printf("comes from fork2: %+v", *out2)
+			appContext.ErrLogger.Printf("comes from fork2: %+v\n%+v", *out2, *out2.Basics)
 			select {
 			case fp.Out1 <- out1:
 				select {
