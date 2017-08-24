@@ -57,6 +57,7 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 	}
 
 	tx := db.Begin()
+
 	if err := tx.Create(img).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("unable to save image: %s", err)

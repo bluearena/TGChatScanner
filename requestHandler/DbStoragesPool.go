@@ -34,6 +34,7 @@ func (dsp *DbStoragesPool) runStorager() {
 		img := &models.Image{
 			Src:    in.LocalPath,
 			ChatID: in.Basics.From,
+			Date:   in.Basics.Sent,
 		}
 		if err := img.CreateImageWithTags(appContext.DB, in.Basics.Tags); err != nil {
 			appContext.ErrLogger.Printf("failed on storing image: %s", err)
