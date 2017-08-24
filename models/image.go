@@ -24,9 +24,15 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 	}
 
 	q_tmp := db.Model(&Image{}).
-		Select("DISTINCT images.*").
-		Preload("Tags", "name IN (?)", params["tag"]).
-		Where("chat_id in (?) ", chats_ids)
+		Select("DISTINCT images.*")
+
+	tags, ok := params["tag"]
+
+	if ok {
+		q_tmp = q_tmp.Preload("Tags", "name IN (?)", tags)
+	}
+
+	q_tmp = q_tmp.Where("chat_id in (?) ", chats_ids)
 
 	chat_id, ok := params["chat_id"]
 	if ok {
