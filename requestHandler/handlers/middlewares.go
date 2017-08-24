@@ -1,19 +1,21 @@
-package requestHandler
+package handlers
 
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"github.com/zwirec/TGChatScanner/models"
+	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
 )
 
-func middlewareLogin(next http.Handler) http.Handler {
+func MiddlewareLogin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		err_l := appContext.SysLogger
+		err_l := appContext.ErrLogger
 		acc_l := appContext.AccessLogger
 
 		if req.Method == "GET" {
@@ -21,7 +23,7 @@ func middlewareLogin(next http.Handler) http.Handler {
 
 			if token == "" {
 				response := UserJSON{Err: "X-User-Token isn't set",
-					Model: nil}
+					User: nil}
 
 				responseJSON, err := json.Marshal(response)
 				if err == nil {
@@ -42,7 +44,7 @@ func middlewareLogin(next http.Handler) http.Handler {
 			if user == nil || expire.Before(time.Now().Add(2*time.Minute)) {
 				tok := models.Token{Token: token}
 				expired_to := tok.ExpiredTo
-				user = tok.GetUserByToken(appContext.Db)
+				user = tok.GetUserByToken(appContext.DB)
 				if expired_to.Add(time.Minute).Before(time.Now()) {
 					memcache.Set(token, user, time.Minute)
 				}
@@ -51,7 +53,7 @@ func middlewareLogin(next http.Handler) http.Handler {
 
 			if user == nil {
 				response := UserJSON{Err: "incorrect user_id or tokens lifetime is expired",
-					Model: nil}
+					User: nil}
 				responseJSON, err := json.Marshal(response)
 				if err == nil {
 					writeResponse(w, string(responseJSON), http.StatusTeapot)
@@ -63,13 +65,13 @@ func middlewareLogin(next http.Handler) http.Handler {
 					return
 				}
 			} else {
-				ctx := context.WithValue(req.Context(), user_key, user)
+				ctx := context.WithValue(req.Context(), UserKey, user)
 				next.ServeHTTP(w, req.WithContext(ctx))
 			}
 
 		} else {
 			response := UserJSON{Err: "method not allowed",
-				Model: nil}
+				User: nil}
 			responseJSON, err := json.Marshal(response)
 			if err == nil {
 				writeResponse(w, string(responseJSON), http.StatusMethodNotAllowed)
@@ -89,7 +91,7 @@ func ChatAutoStore(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		body, err := ioutil.ReadAll(req.Body)
 		acc_l := appContext.AccessLogger
-		errLog := appContext.SysLogger
+		errLog := appContext.ErrLogger
 		if err != nil {
 			errLog.Printf("error during reading bot request: %s", err)
 			logHttpRequest(acc_l, req, http.StatusOK)
@@ -97,7 +99,7 @@ func ChatAutoStore(next http.Handler) http.Handler {
 			return
 		}
 
-		var update TGBotApi.Update
+		var update TGBotAPI.Update
 		err = json.Unmarshal(body, &update)
 		if err != nil {
 			errLog.Printf("error during unmarshaling request: %s: %s", req.URL.String(), err)
@@ -120,7 +122,7 @@ func ChatAutoStore(next http.Handler) http.Handler {
 			return
 		}
 
-		var message *TGBotApi.Message
+		var message *TGBotAPI.Message
 
 		if update.Message != nil {
 			message = update.Message
@@ -139,15 +141,25 @@ func ChatAutoStore(next http.Handler) http.Handler {
 			TGID:  message.Chat.Id,
 			Title: title,
 		}
-		err = chat.CreateIfNotExists(appContext.Db)
+		err = chat.CreateIfNotExists(appContext.DB)
 		if err != nil {
 			logHttpRequest(acc_l, req, http.StatusInternalServerError)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		ctx := context.WithValue(req.Context(), messageKey, message)
+		ctx := context.WithValue(req.Context(), appContext.MessageKey, message)
 
 		next.ServeHTTP(w, req.WithContext(ctx))
-		return
 	})
+}
+
+func writeResponse(w http.ResponseWriter, data interface{}, status int) error {
+	w.WriteHeader(status)
+	if data != nil {
+		_, err := fmt.Fprint(w, data)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

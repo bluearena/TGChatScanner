@@ -1,4 +1,4 @@
-package TGBotApi
+package TGBotAPI
 
 import (
 	"bytes"
@@ -13,34 +13,34 @@ import (
 )
 
 const (
-	TGApiUrl      = "https://api.telegram.org/bot"
-	TGDownloadUrl = "https://api.telegram.org/file/bot"
+	TGAPIURL      = "https://API.telegram.org/bot"
+	TGDownloadURL = "https://api.telegram.org/file/bot"
 )
 
-type BotApi struct {
+type BotAPI struct {
 	Token string
 }
 
-func NewBotApi(token string) *BotApi {
-	return &BotApi{Token: token}
+func NewBotAPI(token string) *BotAPI {
+	return &BotAPI{Token: token}
 }
 
-func (api *BotApi) BuildGetUrl(method string, params *url.Values) string {
-	buff := api.buildApiUrl(method)
+func (API *BotAPI) BuildGetURL(method string, params *url.Values) string {
+	buff := API.buildAPIURL(method)
 	buff.WriteString("?")
 	buff.WriteString(params.Encode())
 	return buff.String()
 }
 
-func (api *BotApi) EncodrApiUrl(method string) string {
-	buff := api.buildApiUrl(method)
+func (API *BotAPI) EncodrAPIURL(method string) string {
+	buff := API.buildAPIURL(method)
 	return buff.String()
 }
 
-func (api *BotApi) EncodeDownloadUrl(filePath string) (string, error) {
+func (API *BotAPI) EncodeDownloadURL(filePath string) (string, error) {
 	var buff bytes.Buffer
-	buff.WriteString(TGDownloadUrl)
-	buff.WriteString(api.Token)
+	buff.WriteString(TGDownloadURL)
+	buff.WriteString(API.Token)
 	buff.WriteString("/")
 	buff.WriteString(filePath)
 	u, err := url.Parse(buff.String())
@@ -50,23 +50,23 @@ func (api *BotApi) EncodeDownloadUrl(filePath string) (string, error) {
 	return u.String(), nil
 }
 
-func (api *BotApi) SendGetToApi(method string, params *url.Values) (*http.Response, error) {
-	reqUrl := api.BuildGetUrl(method, params)
-	response, err := http.Get(reqUrl)
+func (API *BotAPI) SendGetToAPI(method string, params *url.Values) (*http.Response, error) {
+	reqURL := API.BuildGetURL(method, params)
+	response, err := http.Get(reqURL)
 	return response, err
 }
 
-func (api *BotApi) SendPostToApi(method string, contentType string, buffer *bytes.Buffer) (*http.Response, error) {
-	reqUrl := api.EncodrApiUrl(method)
-	response, err := http.Post(reqUrl, contentType, buffer)
+func (API *BotAPI) SendPostToAPI(method string, contentType string, buffer *bytes.Buffer) (*http.Response, error) {
+	reqURL := API.EncodrAPIURL(method)
+	response, err := http.Post(reqURL, contentType, buffer)
 	return response, err
 }
 
-func (api *BotApi) PrepareFile(fileId string) (File, error) {
+func (API *BotAPI) PrepareFile(fileId string) (File, error) {
 	params := url.Values{}
 	params.Add("file_id", fileId)
 
-	response, err := api.SendGetToApi("getFile", &params)
+	response, err := API.SendGetToAPI("getFile", &params)
 	defer response.Body.Close()
 	if err != nil {
 		//TODO: Parse error
@@ -89,34 +89,34 @@ func (api *BotApi) PrepareFile(fileId string) (File, error) {
 	return result.File, nil
 }
 
-func (api *BotApi) SetWebhook(url string, certPath string, maxConn int, allowedUpdates string) error {
-	reqBody, writer := api.createWebhookRequestBody(url, maxConn, allowedUpdates)
+func (API *BotAPI) SetWebhook(URL string, certPath string, maxConn int, allowedUpdates string) error {
+	reqBody, writer := API.createWebhookRequestBody(URL, maxConn, allowedUpdates)
 	defer writer.Close()
 	if certPath != "" {
-		err := api.loadLocalCertificate(certPath, reqBody, writer)
+		err := API.loadLocalCertificate(certPath, reqBody, writer)
 		if err != nil {
 			return err
 		}
 	}
 
 	contentType := writer.FormDataContentType()
-	resp, err := api.SendPostToApi("setWebhook", contentType, reqBody)
+	resp, err := API.SendPostToAPI("setWebhook", contentType, reqBody)
 	defer resp.Body.Close()
 	return err
 }
 
-func (api *BotApi) createWebhookRequestBody(url string, maxConn int, allowedUpdates string) (*bytes.Buffer, *multipart.Writer) {
+func (API *BotAPI) createWebhookRequestBody(URL string, maxConn int, allowedUpdates string) (*bytes.Buffer, *multipart.Writer) {
 	bodyBuffer := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuffer)
 
 	bodyWriter.WriteField("allowed_updates", allowedUpdates)
 	bodyWriter.WriteField("max_connections", strconv.Itoa(maxConn))
-	bodyWriter.WriteField("url", url)
+	bodyWriter.WriteField("url", URL)
 
 	return bodyBuffer, bodyWriter
 }
 
-func (api *BotApi) loadLocalCertificate(certPath string, buff *bytes.Buffer, wr *multipart.Writer) error {
+func (API *BotAPI) loadLocalCertificate(certPath string, buff *bytes.Buffer, wr *multipart.Writer) error {
 	fileWriter, err := wr.CreateFormFile("certificate", certPath)
 	if err != nil {
 		return err
@@ -132,7 +132,7 @@ func (api *BotApi) loadLocalCertificate(certPath string, buff *bytes.Buffer, wr 
 	return err
 }
 
-func (api *BotApi) SendMessage(chatId int64, text string, withoutPreview bool) (*http.Response, error) {
+func (API *BotAPI) SendMessage(chatId int64, text string, withoutPreview bool) (*http.Response, error) {
 	message := &SendMessageRequest{
 		Text:                  text,
 		ChatId:                chatId,
@@ -144,14 +144,14 @@ func (api *BotApi) SendMessage(chatId int64, text string, withoutPreview bool) (
 		return nil, err
 	}
 	buff.Write(mjson)
-	r, err := api.SendPostToApi("sendMessage", "application/json", &buff)
+	r, err := API.SendPostToAPI("sendMessage", "application/json", &buff)
 	return r, err
 }
 
-func (api *BotApi) buildApiUrl(method string) *bytes.Buffer {
+func (API *BotAPI) buildAPIURL(method string) *bytes.Buffer {
 	var buff bytes.Buffer
-	buff.WriteString(TGApiUrl)
-	buff.WriteString(api.Token)
+	buff.WriteString(TGAPIURL)
+	buff.WriteString(API.Token)
 	buff.WriteString("/")
 	buff.WriteString(method)
 	return &buff

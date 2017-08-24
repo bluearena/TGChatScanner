@@ -1,4 +1,4 @@
-package TGBotApi
+package TGBotAPI
 
 type Update struct {
 	UpdateId          int      `json:"update_id"`

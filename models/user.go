@@ -2,8 +2,9 @@ package models
 
 import (
 	"database/sql"
-	"github.com/jinzhu/gorm"
 	"time"
+
+	"github.com/jinzhu/gorm"
 )
 
 type User struct {
@@ -12,7 +13,7 @@ type User struct {
 	CreatedAt time.Time  `json:"-"`
 	Username  string     `gorm:"size:64" json:"username"`
 	Chats     []Chat     `gorm:"many2many:users_chats;AssociationForeignKey:TGID;ForeignKey:TGID"`
-	Token     []Token    `gorm:"ForeignKey:TGID;AssociationForeignKey:ID"`
+	Token     []Token    `gorm:"ForeignKey:ID;AssociationForeignKey:TGID"`
 }
 
 func (u *User) GetTags(db *gorm.DB) ([]Tag, error) {
@@ -49,10 +50,7 @@ func (u *User) CreateIfNotExists(db *gorm.DB) error {
 
 func (u *User) IsExists(db *gorm.DB) bool {
 	ok := db.Where(u).First(u).RowsAffected
-	if ok == 1 {
-		return true
-	}
-	return false
+	return ok == 1
 }
 
 func (u *User) GetUsersChats(db *gorm.DB) error {
