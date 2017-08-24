@@ -2,6 +2,7 @@ package requestHandler
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"log"
@@ -39,17 +40,19 @@ func (fpp *FilePreparationsPool) Run(outBufferSize int, finished *sync.WaitGroup
 
 func preparationWorker(toPrepare chan *file.FileBasic, result chan *file.PreparedFile, done chan struct{}) {
 	for in := range toPrepare {
-		appContext.ErrLogger.Printf("comes on prep: %+v", *in)
 		fileId := in.FileId
 		f, err := appContext.BotAPI.PrepareFile(fileId)
 		if err != nil {
-			appContext.ErrLogger.Printf("error during preparation stage on %s: %s", in.FileId, err)
+			err = fmt.Errorf("error during preparation stage on %s: %s", in.FileId, err)
+			NonBlockingNotify(in.Errorc, err)
 			continue
 		}
 
 		url, err := appContext.BotAPI.EncodeDownloadURL(f.FilePath)
 		if err != nil {
-			appContext.ErrLogger.Printf("incorrect url during preparation stage on %s: %s", in.FileId, err)
+			err = fmt.Errorf("incorrect url during preparation stage on %s: %s", in.FileId, err)
+			NonBlockingNotify(in.Errorc, err)
+			continue
 		}
 
 		status := file.Undefiend
@@ -60,8 +63,9 @@ func preparationWorker(toPrepare chan *file.FileBasic, result chan *file.Prepare
 			Status:          &status,
 		}
 		fpResult := &file.PreparedFile{Link: fl}
-		appContext.ErrLogger.Printf("comes from prep: %+v", *fpResult)
 		select {
+		case <-in.BasicContext.Done():
+			continue
 		case result <- fpResult:
 		case <-done:
 			return
@@ -82,4 +86,12 @@ func BuildLocalPath(f *file.FileBasic) string {
 	buff.WriteString("/")
 	buff.WriteString(f.FileId)
 	return buff.String()
+}
+
+func NonBlockingNotify(errorc chan error, err error) {
+	select {
+	case errorc <- err:
+	default:
+		return
+	}
 }

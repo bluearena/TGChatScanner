@@ -1,6 +1,7 @@
 package requestHandler
 
 import (
+	"fmt"
 	"github.com/zwirec/TGChatScanner/models"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
@@ -36,9 +37,23 @@ func (dsp *DbStoragesPool) runStorager() {
 			ChatID: in.Basics.From,
 			Date:   in.Basics.Sent,
 		}
-		if err := img.CreateImageWithTags(appContext.DB, in.Basics.Tags); err != nil {
-			appContext.ErrLogger.Printf("failed on storing image: %s", err)
-			continue
+		var tags []models.Tag
+		for _, t := range in.Basics.Tags {
+			tags = append(tags, models.Tag{Name: t})
+		}
+		tx := appContext.DB.Begin()
+		if err := img.CreateImageWithTags(tx, tags); err != nil {
+			tx.Rollback()
+			err = fmt.Errorf("failed on storing image: %s", err)
+			NonBlockingNotify(in.Basics.Errorc, err)
+		} else {
+			select {
+			case <- in.Basics.BasicContext.Done():
+				tx.Rollback()
+			default:
+				NonBlockingNotify(in.Basics.Errorc, nil)
+				tx.Commit()
+			}
 		}
 	}
 }
