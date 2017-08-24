@@ -1,23 +1,22 @@
 package requestHandler
 
 import (
+	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"io"
 	"net/http"
 	"os"
 	"sync"
 )
 
-type DownloadedFile PreparedFile
-
 type FileDownloadersPool struct {
-	In            chan *FileLink
-	Out           chan *DownloadedFile
+	In            chan *file.FileLink
+	Out           chan *file.DownloadedFile
 	Done          chan struct{}
 	WorkersNumber int
 }
 
-func (fdp *FileDownloadersPool) Run(queueSize int, finished sync.WaitGroup) chan *DownloadedFile {
-	fdp.Out = make(chan *DownloadedFile, queueSize)
+func (fdp *FileDownloadersPool) Run(queueSize int, finished sync.WaitGroup) chan *file.DownloadedFile {
+	fdp.Out = make(chan *file.DownloadedFile, queueSize)
 	var wg sync.WaitGroup
 	wg.Add(fdp.WorkersNumber)
 
@@ -38,8 +37,8 @@ func (fdp *FileDownloadersPool) Run(queueSize int, finished sync.WaitGroup) chan
 
 func (fdp *FileDownloadersPool) runDownloader() {
 	for in := range fdp.In {
-		err := downloadFile(in.FileDowloadUrl, in.LocalPath)
-		df := &DownloadedFile{in, err}
+		err := downloadFile(in.FileDownloadUrl, in.LocalPath)
+		df := &file.DownloadedFile{in, err}
 		select {
 		case fdp.Out <- df:
 		case <-fdp.Done:

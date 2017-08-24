@@ -1,19 +1,9 @@
-package requestHandler
+package recognizers
 
-import "sync"
-
-type PhotoRecognizersPool struct {
-	In            chan *FileInfo
-	Out           chan *RecognizedPhoto
-	Done          chan struct{}
-	WorkersNumber int
-}
-
-type RecognizedPhoto struct {
-	FileId string
-	Tags   []string
-	Error  error
-}
+import (
+	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
+	"sync"
+)
 
 func (frp *PhotoRecognizersPool) Run(queueSize int, finished sync.WaitGroup) chan *RecognizedPhoto {
 	frp.Out = make(chan *RecognizedPhoto, queueSize)
