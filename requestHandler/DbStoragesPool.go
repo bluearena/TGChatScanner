@@ -1,11 +1,11 @@
 package requestHandler
 
 import (
+	"fmt"
 	"github.com/zwirec/TGChatScanner/models"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
-	"log"
 )
 
 type DbStoragesPool struct {
@@ -38,9 +38,10 @@ func (dsp *DbStoragesPool) runStorager() {
 			Date:   in.Basics.Sent,
 		}
 		if err := img.CreateImageWithTags(appContext.DB, in.Basics.Tags); err != nil {
-			appContext.ErrLogger.Printf("failed on storing image: %s", err)
-			continue
+			err = fmt.Errorf("failed on storing image: %s", err)
+			NonBlockingNotify(in.Basics.Errorc, err)
+		} else {
+			NonBlockingNotify(in.Basics.Errorc, nil)
 		}
-		log.Println("Done!")
 	}
 }

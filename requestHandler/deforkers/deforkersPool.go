@@ -1,7 +1,6 @@
 package deforkers
 
 import (
-	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
 )
@@ -32,33 +31,36 @@ func (dp *DeforkersPool) defork() {
 			if in1 == nil {
 				return
 			}
-			appContext.ErrLogger.Printf("comes on defork1: %+v\n%+v", *in1.Link,*in1.Link.Basics)
 			out, err := dp.DeforkDownloaded(in1)
 			if err != nil {
 				continue
 			}
 
-			appContext.ErrLogger.Printf("comes from defork1: %+v\n%+v", *out, *out.Basics)
 			select {
 			case dp.Out <- out:
+			case <-in1.Link.Basics.BasicContext.Done():
+				continue
 			case <-dp.Done:
 				return
 			}
+
 		case in2 := <-dp.In2:
 			if in2 == nil {
 				return
 			}
-			appContext.ErrLogger.Printf("comes on defork2: %+v\n%+v", *in2.Link,*in2.Link.Basics)
 			out, err := dp.DeforkRecognized(in2)
 			if err != nil {
 				continue
 			}
-			appContext.ErrLogger.Printf("comes from defork2: %+v\n%+v", *out,*out.Basics)
+
 			select {
 			case dp.Out <- out:
+			case <-in2.Link.Basics.BasicContext.Done():
+				continue
 			case <-dp.Done:
 				return
 			}
+
 		}
 	}
 }
