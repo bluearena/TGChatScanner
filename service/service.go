@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	memcache "github.com/patrickmn/go-cache"
@@ -59,6 +58,7 @@ type Service struct {
 	accessLogger *log.Logger
 	notifier     chan os.Signal
 	poolsWG      sync.WaitGroup
+	endpointWg   sync.WaitGroup
 	poolsDone    chan struct{}
 }
 
@@ -115,14 +115,12 @@ func (s *Service) Run() error {
 
 	dr := make(chan *file.FileBasic, workers_n*2)
 
-	poolStopper := make(chan struct{})
-
-	fp := &requestHandler.FilePreparationsPool{In: dr, Done: poolStopper, WorkersNumber: workers_n}
+	fp := &requestHandler.FilePreparationsPool{In: dr, Done: s.poolsDone, WorkersNumber: workers_n}
 	fpOut := fp.Run(workers_n*2, &s.poolsWG)
 
 	forker := &forkers.ForkersPool{
 		In:             fpOut,
-		Done:           poolStopper,
+		Done:           s.poolsDone,
 		WorkersNumber:  workers_n,
 		ForkToFileInfo: requestHandler.CastToFileInfo,
 		ForkToFileLink: requestHandler.CastToFileLink,
@@ -130,10 +128,10 @@ func (s *Service) Run() error {
 
 	fdIn, prIn := forker.Run(workers_n, workers_n, &s.poolsWG)
 
-	fd := &requestHandler.FileDownloadersPool{In: fdIn, Done: poolStopper, WorkersNumber: workers_n}
+	fd := &requestHandler.FileDownloadersPool{In: fdIn, Done: s.poolsDone, WorkersNumber: workers_n}
 	fdOut := fd.Run(workers_n, &s.poolsWG)
 
-	pr := &recognizers.PhotoRecognizersPool{In: prIn, Done: poolStopper, WorkersNumber: workers_n}
+	pr := &recognizers.PhotoRecognizersPool{In: prIn, Done: s.poolsDone, WorkersNumber: workers_n}
 	prOut := pr.Run(workers_n, &s.poolsWG)
 
 	deforker := &deforkers.DeforkersPool{
@@ -191,14 +189,14 @@ func (s *Service) Run() error {
 
 	s.srv = &http.Server{Handler: s.reqHandler}
 
-	defer close(poolStopper)
+	s.endpointWg.Add(1)
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	go func() {
+		defer s.endpointWg.Done()
+		s.endpoint()
 
-	go s.endpoint()
-
-	wg.Wait()
+	}()
+	s.endpointWg.Wait()
 	return nil
 }
 
@@ -270,12 +268,12 @@ func (s *Service) handler(c chan os.Signal) {
 		<-c
 		s.ErrLogger.Println("Gracefully stopping...")
 		log.Println("Gracefully stopping...")
+		close(appContext.DownloadRequests)
 		close(s.poolsDone)
 		s.poolsWG.Wait()
-		if err := s.srv.Shutdown(context.TODO()); err != nil {
+		if err := s.srv.Shutdown(nil); err != nil {
 			s.ErrLogger.Println(err)
 			return
 		}
-		os.Exit(0)
 	}
 }

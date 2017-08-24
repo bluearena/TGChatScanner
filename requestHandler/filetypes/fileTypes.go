@@ -2,29 +2,38 @@ package filetypes
 
 import "time"
 
+const (
+	Undefiend       int32 = 0
+	RecSuccess      int32 = 1
+	RecFailed       int32 = 2
+	DownloadSuccess int32 = 4
+	DownloadFailed  int32 = 8
+)
+
 type FileBasic struct {
 	FileId string
 	Type   string
 	Sent   time.Time
-
-	Context map[string]interface{}
+	From   int64
+	Tags   []string
 }
 
 type FileLink struct {
 	FileDownloadURL string
 	LocalPath       string
 	Basics          *FileBasic
+	Status          *int32
 }
 type PreparedFile struct {
 	Link  *FileLink
 	Error error
 }
 
-type DownloadedFile PreparedFile
+type DownloadedFile struct {
+	Link  *FileLink
+	Error error
+}
 
 type CompleteFile FileLink
 
-type FileInfo struct {
-	FileId  string
-	FileURL string
-}
+type FileInfo FileLink

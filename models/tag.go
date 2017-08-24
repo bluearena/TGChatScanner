@@ -12,11 +12,12 @@ type Tag struct {
 	Chats  []Chat  `gorm:"many2many:chats_tags"`
 }
 
-func (t *Tag) SaveIfUnique(db *gorm.DB) error {
+func (t *Tag) CreateIfUnique(db *gorm.DB) error {
 	err := db.Set("gorm:insert_option", "ON CONFLICT ON CONSTRAINT tags_name_key DO NOTHING").
-		Save(t).
+		Create(t).
 		Error
 	if err == sql.ErrNoRows {
+		db.Where("name = ?",t.Name).First(&t)
 		return nil
 	}
 	return err

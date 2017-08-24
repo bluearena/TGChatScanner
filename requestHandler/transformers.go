@@ -2,10 +2,10 @@ package requestHandler
 
 import (
 	"errors"
-	"github.com/patrickmn/go-cache"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"github.com/zwirec/TGChatScanner/requestHandler/recognizers"
+	"sync/atomic"
 )
 
 var (
@@ -24,21 +24,19 @@ func CastToFileInfo(pf *file.PreparedFile) (*file.FileInfo, error) {
 	if pf.Link.Basics.Type != "photo" {
 		return nil, ErrWrongForkPath
 	}
-	return &file.FileInfo{pf.Link.Basics.FileId, pf.Link.FileDownloadURL}, nil
+	return (*file.FileInfo)(pf.Link), nil
 }
 
 func CastFromDownloadedFile(df *file.DownloadedFile) (*file.CompleteFile, error) {
 	if df.Error != nil {
 		appContext.ErrLogger.Printf("invalid downloaded file on defork: %s", df.Error)
+		atomic.StoreInt32(df.Link.Status, file.DownloadFailed)
 		return nil, df.Error
 	}
-	fID := df.Link.Basics.FileId
-	exists := appContext.Cache.Add(fID, df.Link, cache.DefaultExpiration)
-	if exists != nil {
-		tags, _ := appContext.Cache.Get(fID)
-		df.Link.Basics.Context["tags"] = tags
-		link := (*file.CompleteFile)(df.Link)
-		return link, nil
+
+	status := atomic.SwapInt32(df.Link.Status, file.DownloadSuccess)
+	if status == file.RecSuccess {
+		return (*file.CompleteFile)(df.Link), nil
 	}
 	return nil, ErrBadDeforkAttempt
 }
@@ -46,15 +44,14 @@ func CastFromDownloadedFile(df *file.DownloadedFile) (*file.CompleteFile, error)
 func CastFromRecognizedPhoto(rp *recognizers.RecognizedPhoto) (*file.CompleteFile, error) {
 	if rp.Error != nil {
 		appContext.ErrLogger.Printf("invalid recognized photo on defork: %s", rp.Error)
+		atomic.StoreInt32(rp.Link.Status, file.RecFailed)
 		return nil, rp.Error
 	}
-	fID := rp.FileId
-	exists := appContext.Cache.Add(fID, rp.Tags, cache.DefaultExpiration)
-	if exists != nil {
-		lk, _ := appContext.Cache.Get(fID)
-		link := lk.(*file.FileLink)
-		link.Basics.Context["tags"] = rp.Tags
-		return (*file.CompleteFile)(link), nil
+
+	status := atomic.SwapInt32(rp.Link.Status, file.RecSuccess)
+
+	if status == file.DownloadSuccess {
+		return (*file.CompleteFile)(rp.Link), nil
 	}
 	return nil, ErrBadDeforkAttempt
 }

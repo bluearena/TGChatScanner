@@ -21,8 +21,8 @@ func (fpp *FilePreparationsPool) Run(outBufferSize int, finished *sync.WaitGroup
 	wg.Add(fpp.WorkersNumber)
 	for i := 0; i < fpp.WorkersNumber; i++ {
 		go func() {
+			defer wg.Done()
 			preparationWorker(fpp.In, fpp.Out, fpp.Done)
-			wg.Done()
 		}()
 	}
 	finished.Add(1)
@@ -48,10 +48,12 @@ func preparationWorker(toPrepare chan *file.FileBasic, result chan *file.Prepare
 		if err != nil {
 			appContext.ErrLogger.Printf("incorrect url during preparation stage on %s: %s", in.FileId, err)
 		}
+		status := file.Undefiend
 		fl := &file.FileLink{
 			FileDownloadURL: url,
 			LocalPath:       BuildLocalPath(fileId),
 			Basics:          in,
+			Status: 		 &status,
 		}
 		fpResult := &file.PreparedFile{Link: fl}
 		appContext.ErrLogger.Printf("comes from prep: %+v", *fpResult)
