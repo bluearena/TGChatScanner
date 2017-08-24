@@ -28,11 +28,12 @@ func MiddlewareLogin(next http.Handler) http.Handler {
 				responseJSON, err := json.Marshal(response)
 				if err == nil {
 					writeResponse(w, string(responseJSON), http.StatusForbidden)
-					acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusForbidden)
+					logHttpRequest(acc_l, req,http.StatusForbidden)
 					return
 				} else {
 					err_l.Println(err)
-					acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+					logHttpRequest(acc_l, req,http.StatusForbidden)
+					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
 			}
@@ -57,11 +58,11 @@ func MiddlewareLogin(next http.Handler) http.Handler {
 				responseJSON, err := json.Marshal(response)
 				if err == nil {
 					writeResponse(w, string(responseJSON), http.StatusOK)
-					acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusOK)
+					logHttpRequest(acc_l, req,http.StatusOK)
 					return
 				} else {
 					err_l.Println(err)
-					acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+					logHttpRequest(acc_l, req,http.StatusInternalServerError)
 					return
 				}
 			} else {
@@ -75,10 +76,10 @@ func MiddlewareLogin(next http.Handler) http.Handler {
 			responseJSON, err := json.Marshal(response)
 			if err == nil {
 				writeResponse(w, string(responseJSON), http.StatusMethodNotAllowed)
-				acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusMethodNotAllowed)
+				logHttpRequest(acc_l, req,http.StatusMethodNotAllowed)
 				return
 			} else {
-				acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusInternalServerError)
+				logHttpRequest(acc_l, req,http.StatusInternalServerError)
 				err_l.Println(err)
 				return
 			}

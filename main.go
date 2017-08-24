@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/zwirec/TGChatScanner/service"
 	"log"
+	"github.com/zwirec/TGChatScanner/modelManager"
 )
 
 func main() {
@@ -10,4 +11,5 @@ func main() {
 	if err := serv.Run(); err != nil {
 		log.Fatal(err)
 	}
+
 }
