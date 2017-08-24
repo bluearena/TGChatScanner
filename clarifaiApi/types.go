@@ -1,4 +1,4 @@
-package clarifaiApi
+package clarifaiAPI
 
 import "time"
 
@@ -55,7 +55,7 @@ type (
 	}
 
 	Image struct {
-		Url string `json:"url"`
+		URL string `json:"url"`
 	}
 
 	Input struct {

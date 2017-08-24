@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/zwirec/TGChatScanner/TGBotApi"
+	"github.com/zwirec/TGChatScanner/TGBotAPI"
 	"github.com/zwirec/TGChatScanner/models"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	"io/ioutil"
@@ -99,7 +99,7 @@ func ChatAutoStore(next http.Handler) http.Handler {
 			return
 		}
 
-		var update TGBotApi.Update
+		var update TGBotAPI.Update
 		err = json.Unmarshal(body, &update)
 		if err != nil {
 			errLog.Printf("error during unmarshaling request: %s: %s", req.URL.String(), err)
@@ -122,7 +122,7 @@ func ChatAutoStore(next http.Handler) http.Handler {
 			return
 		}
 
-		var message *TGBotApi.Message
+		var message *TGBotAPI.Message
 
 		if update.Message != nil {
 			message = update.Message
@@ -150,7 +150,6 @@ func ChatAutoStore(next http.Handler) http.Handler {
 		ctx := context.WithValue(req.Context(), appContext.MessageKey, message)
 
 		next.ServeHTTP(w, req.WithContext(ctx))
-		return
 	})
 }
 

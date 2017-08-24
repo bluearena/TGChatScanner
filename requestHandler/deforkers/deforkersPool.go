@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-func (dp *DeforkersPool) Run(queueSize int, finished sync.WaitGroup) chan *file.CompleteFile {
+func (dp *DeforkersPool) Run(queueSize int, finished *sync.WaitGroup) chan *file.CompleteFile {
 	dp.Out = make(chan *file.CompleteFile, queueSize)
 	var wg sync.WaitGroup
 	wg.Add(dp.WorkersNumber)

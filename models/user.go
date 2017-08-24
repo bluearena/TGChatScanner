@@ -2,8 +2,9 @@ package models
 
 import (
 	"database/sql"
-	"github.com/jinzhu/gorm"
 	"time"
+
+	"github.com/jinzhu/gorm"
 )
 
 type User struct {
@@ -49,10 +50,7 @@ func (u *User) CreateIfNotExists(db *gorm.DB) error {
 
 func (u *User) IsExists(db *gorm.DB) bool {
 	ok := db.Where(u).First(u).RowsAffected
-	if ok == 1 {
-		return true
-	}
-	return false
+	return ok == 1
 }
 
 func (u *User) GetUsersChats(db *gorm.DB) error {

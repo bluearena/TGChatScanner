@@ -14,7 +14,7 @@ type FilePreparationsPool struct {
 	WorkersNumber int
 }
 
-func (fpp *FilePreparationsPool) Run(outBufferSize int, finished sync.WaitGroup) chan *file.PreparedFile {
+func (fpp *FilePreparationsPool) Run(outBufferSize int, finished *sync.WaitGroup) chan *file.PreparedFile {
 	fpp.Out = make(chan *file.PreparedFile, outBufferSize)
 	var wg sync.WaitGroup
 
@@ -37,13 +37,13 @@ func (fpp *FilePreparationsPool) Run(outBufferSize int, finished sync.WaitGroup)
 func preparationWorker(toPrepare chan *file.FileBasic, result chan *file.PreparedFile, done chan struct{}) {
 	for in := range toPrepare {
 		fileId := in.FileId
-		f, err := appContext.BotApi.PrepareFile(fileId)
+		f, err := appContext.BotAPI.PrepareFile(fileId)
 		if err != nil {
 			appContext.ErrLogger.Printf("error during preparation stage on %s: %s", in.FileId, err)
 			continue
 		}
 		fl := &file.FileLink{
-			FileDownloadUrl: appContext.BotApi.EncodeDownloadUrl(f.FilePath),
+			FileDownloadURL: appContext.BotAPI.EncodeDownloadURL(f.FilePath),
 			LocalPath:       BuildLocalPath(fileId),
 			Basics:          in,
 		}

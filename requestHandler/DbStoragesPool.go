@@ -12,7 +12,7 @@ type DbStoragesPool struct {
 	WorkersNumber int
 }
 
-func (dsp *DbStoragesPool) Run(finished sync.WaitGroup) {
+func (dsp *DbStoragesPool) Run(finished *sync.WaitGroup) {
 	var wg sync.WaitGroup
 	wg.Add(dsp.WorkersNumber)
 	for i := 0; i < dsp.WorkersNumber; i++ {

@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-func (frp *PhotoRecognizersPool) Run(queueSize int, finished sync.WaitGroup) chan *RecognizedPhoto {
+func (frp *PhotoRecognizersPool) Run(queueSize int, finished *sync.WaitGroup) chan *RecognizedPhoto {
 	frp.Out = make(chan *RecognizedPhoto, queueSize)
 	var wg sync.WaitGroup
 	wg.Add(frp.WorkersNumber)
@@ -26,7 +26,7 @@ func (frp *PhotoRecognizersPool) Run(queueSize int, finished sync.WaitGroup) cha
 
 func (frp *PhotoRecognizersPool) runPhotoRecognizer() {
 	for in := range frp.In {
-		tags, err := appContext.CfApi.RecognizeImage(in.FileUrl, 0.9)
+		tags, err := appContext.CfAPI.RecognizeImage(in.FileURL, 0.9)
 		rp := &RecognizedPhoto{in.FileId, tags, err}
 		select {
 		case frp.Out <- rp:

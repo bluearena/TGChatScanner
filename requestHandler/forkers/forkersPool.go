@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-func (fp *ForkersPool) Run(out1queue int, out2queue int, finished sync.WaitGroup) (out1 chan *file.FileLink, out2 chan *file.FileInfo) {
+func (fp *ForkersPool) Run(out1queue int, out2queue int, finished *sync.WaitGroup) (out1 chan *file.FileLink, out2 chan *file.FileInfo) {
 	fp.Out1 = make(chan *file.FileLink, out1queue)
 	fp.Out2 = make(chan *file.FileInfo, out2queue)
 	var wg sync.WaitGroup

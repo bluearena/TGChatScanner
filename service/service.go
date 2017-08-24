@@ -1,11 +1,12 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	memcache "github.com/patrickmn/go-cache"
-	"github.com/zwirec/TGChatScanner/TGBotApi"
-	"github.com/zwirec/TGChatScanner/clarifaiApi"
+	"github.com/zwirec/TGChatScanner/TGBotAPI"
+	"github.com/zwirec/TGChatScanner/clarifaiAPI"
 	"github.com/zwirec/TGChatScanner/modelManager"
 	"github.com/zwirec/TGChatScanner/requestHandler"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
@@ -28,7 +29,7 @@ import (
 
 var (
 	home      = os.Getenv("HOME")
-	configUrl = os.Getenv("TGCHATSCANNER_REMOTE_CONFIG")
+	configURL = os.Getenv("TGCHATSCANNER_REMOTE_CONFIG")
 )
 
 func init() {
@@ -40,8 +41,8 @@ func init() {
 		home := u.HomeDir
 		fmt.Fprint(ioutil.Discard, home)
 	}
-	if configUrl == "" {
-		configUrl = home + "/.config/tgchatscanner/config.json"
+	if configURL == "" {
+		configURL = home + "/.config/tgchatscanner/config.json"
 	}
 }
 
@@ -57,7 +58,7 @@ type Service struct {
 	sysLogger    *log.Logger
 	accessLogger *log.Logger
 	notifier     chan os.Signal
-	poolsWG      sync.WaitGroup
+	poolsWG      *sync.WaitGroup
 	poolsDone    chan struct{}
 }
 
@@ -84,7 +85,7 @@ func (s *Service) Run() error {
 	s.sysLogger = log.New(errorlog, "", log.LstdFlags|log.Llongfile)
 	s.accessLogger = log.New(accesslog, "", log.LstdFlags)
 
-	if err := s.parseConfig(configUrl); err != nil {
+	if err := s.parseConfig(configURL); err != nil {
 		s.sysLogger.Println(err)
 		return err
 	}
@@ -102,9 +103,9 @@ func (s *Service) Run() error {
 		s.sysLogger.Println(err)
 	}
 
-	clApi := clarifaiApi.NewClarifaiApi(s.config["clarifai"]["api_key"].(string))
+	clAPI := clarifaiAPI.NewClarifaiAPI(s.config["clarifai"]["api_key"].(string))
 
-	botApi := TGBotApi.NewBotApi(s.config["tg_bot_api"]["token"].(string))
+	botAPI := TGBotAPI.NewBotAPI(s.config["tg_bot_api"]["token"].(string))
 
 	workers_n, ok := s.config["server"]["workers"].(int)
 
@@ -152,6 +153,11 @@ func (s *Service) Run() error {
 
 	imgPath, ok := s.config["chatscanner"]["images_path"].(string)
 
+	if !ok {
+		wd, _ := os.Getwd()
+		imgPath = wd + "/uploads/"
+	}
+
 	if err := os.MkdirAll(imgPath, os.ModePerm); err != nil {
 		s.sysLogger.Println(err)
 	}
@@ -171,8 +177,8 @@ func (s *Service) Run() error {
 	context := appContext.AppContext{
 		DB:               db,
 		DownloadRequests: dr,
-		BotApi:           botApi,
-		CfApi:            clApi,
+		BotAPI:           botAPI,
+		CfAPI:            clAPI,
 		Cache:            cache,
 		ErrLogger:        s.sysLogger,
 		AccessLogger:     s.accessLogger,
@@ -217,13 +223,13 @@ func (s *Service) endpoint() (err error) {
 	return nil
 }
 
-func (s *Service) parseConfig(_url string) error {
+func (s *Service) parseConfig(URL string) error {
 	var configRaw []byte
 
-	_, err := url.Parse(_url)
+	_, err := url.Parse(URL)
 
 	if err == nil {
-		res, err := http.Get(_url)
+		res, err := http.Get(URL)
 		if err != nil {
 			s.sysLogger.Println(err)
 			return err
@@ -238,7 +244,7 @@ func (s *Service) parseConfig(_url string) error {
 
 	} else {
 		var err error
-		configRaw, err = ioutil.ReadFile(_url)
+		configRaw, err = ioutil.ReadFile(URL)
 		if err != nil {
 			s.sysLogger.Println(err)
 			return err
@@ -266,7 +272,7 @@ func (s *Service) handler(c chan os.Signal) {
 		log.Println("Gracefully stopping...")
 		close(s.poolsDone)
 		s.poolsWG.Wait()
-		if err := s.srv.Shutdown(nil); err != nil {
+		if err := s.srv.Shutdown(context.TODO()); err != nil {
 			s.sysLogger.Println(err)
 			return
 		}

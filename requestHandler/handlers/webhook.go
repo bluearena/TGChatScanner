@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/rs/xid"
-	"github.com/zwirec/TGChatScanner/TGBotApi"
+	"github.com/zwirec/TGChatScanner/TGBotAPI"
 	"github.com/zwirec/TGChatScanner/models"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	UserStatsUrl     = "/stats"
+	UserStatsURL     = "/stats"
 	MaxFailedUpdates = 100
 )
 
@@ -27,7 +27,7 @@ var (
 
 func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	message := ctx.Value(appContext.MessageKey).(*TGBotApi.Message)
+	message := ctx.Value(appContext.MessageKey).(*TGBotAPI.Message)
 
 	accLog := appContext.AccessLogger
 	errLog := appContext.ErrLogger
@@ -71,7 +71,7 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func BotCommandRouter(message *TGBotApi.Message) error {
+func BotCommandRouter(message *TGBotAPI.Message) error {
 	r := regexp.MustCompile(`/(start(?:group)?|mystats|wantscan)?\s*`)
 	command := r.FindStringSubmatch(message.Text)
 	if len(command) == 0 {
@@ -91,7 +91,7 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 		}
 		hello := "Hello, chat " + message.Chat.Title
 
-		_, err = appContext.BotApi.SendMessage(message.Chat.Id, hello, true)
+		_, err = appContext.BotAPI.SendMessage(message.Chat.Id, hello, true)
 		return err
 	case "wantscan":
 		err := AddSubscription(&message.From, &message.Chat)
@@ -107,15 +107,15 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 		if err != nil {
 			return err
 		}
-		us := BuildUserStatUrl(token)
-		_, err = appContext.BotApi.SendMessage(message.Chat.Id, us, true)
+		us := BuildUserStatURL(token)
+		_, err = appContext.BotAPI.SendMessage(message.Chat.Id, us, true)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
-func AddSubscription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
+func AddSubscription(user *TGBotAPI.User, chat *TGBotAPI.Chat) (err error) {
 	var username string
 	if user.UserName != "" {
 		username = user.UserName
@@ -169,10 +169,10 @@ func SetUserToken(userId int) (string, error) {
 	return t.Token, nil
 }
 
-func BuildUserStatUrl(token string) string {
+func BuildUserStatURL(token string) string {
 	var buff bytes.Buffer
 	buff.WriteString(appContext.Hostname)
-	buff.WriteString(UserStatsUrl)
+	buff.WriteString(UserStatsURL)
 	buff.WriteString("?")
 	params := url.Values{}
 	params.Add("token", token)

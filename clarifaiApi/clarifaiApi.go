@@ -1,4 +1,4 @@
-package clarifaiApi
+package clarifaiAPI
 
 import (
 	"bytes"
@@ -9,22 +9,22 @@ import (
 	"net/http"
 )
 
-const apiUrl = "https://api.clarifai.com/v2/models/aaa03c23b3724a16a56b629203edc62c/outputs"
+const APIURL = "https://api.clarifai.com/v2/models/aaa03c23b3724a16a56b629203edc62c/outputs"
 
-type ClarifaiApi struct {
+type ClarifaiAPI struct {
 	httpClient *http.Client
-	apiKey     string
+	APIKey     string
 }
 
-func NewClarifaiApi(apiKey string) *ClarifaiApi {
-	return &ClarifaiApi{
+func NewClarifaiAPI(APIKey string) *ClarifaiAPI {
+	return &ClarifaiAPI{
 		httpClient: &http.Client{},
-		apiKey:     apiKey,
+		APIKey:     APIKey,
 	}
 }
 
-func (ca *ClarifaiApi) RecognizeImage(url string, minProbability float64) ([]string, error) {
-	result, err := ca.RecognizeImages([]string{url}, minProbability)
+func (ca *ClarifaiAPI) RecognizeImage(URL string, minProbability float64) ([]string, error) {
+	result, err := ca.RecognizeImages([]string{URL}, minProbability)
 
 	if err != nil {
 		return nil, err
@@ -34,11 +34,11 @@ func (ca *ClarifaiApi) RecognizeImage(url string, minProbability float64) ([]str
 }
 
 // Recognize images and return tags
-func (ca *ClarifaiApi) RecognizeImages(urls []string, minProbability float64) ([][]string, error) {
-	requestBody := Request{make([]Input, len(urls))}
+func (ca *ClarifaiAPI) RecognizeImages(URLs []string, minProbability float64) ([][]string, error) {
+	requestBody := Request{make([]Input, len(URLs))}
 
-	for i, url := range urls {
-		requestBody.Inputs[i] = Input{Data: Data{Image{url}}}
+	for i, URL := range URLs {
+		requestBody.Inputs[i] = Input{Data: Data{Image{URL}}}
 	}
 
 	b, err := json.Marshal(requestBody)
@@ -46,12 +46,12 @@ func (ca *ClarifaiApi) RecognizeImages(urls []string, minProbability float64) ([
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", apiUrl, bytes.NewBuffer(b))
+	req, err := http.NewRequest("POST", APIURL, bytes.NewBuffer(b))
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", "Key "+ca.apiKey)
+	req.Header.Set("Authorization", "Key "+ca.APIKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := ca.httpClient.Do(req)
@@ -72,7 +72,7 @@ func (ca *ClarifaiApi) RecognizeImages(urls []string, minProbability float64) ([
 	tags := make([][]string, len(responseBody.Outputs))
 	for i, output := range responseBody.Outputs {
 		if output.Status.Code != 10000 {
-			err := errors.New(output.Input.Data.Image.Url + ": " + output.Status.Description)
+			err := errors.New(output.Input.Data.Image.URL + ": " + output.Status.Description)
 			return nil, err
 		}
 

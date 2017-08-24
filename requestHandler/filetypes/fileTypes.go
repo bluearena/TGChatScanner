@@ -11,7 +11,7 @@ type FileBasic struct {
 }
 
 type FileLink struct {
-	FileDownloadUrl string
+	FileDownloadURL string
 	LocalPath       string
 	Basics          *FileBasic
 }
@@ -26,5 +26,5 @@ type CompleteFile FileLink
 
 type FileInfo struct {
 	FileId  string
-	FileUrl string
+	FileURL string
 }

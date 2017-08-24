@@ -1,19 +1,20 @@
 package appContext
 
 import (
+	"log"
+
 	"github.com/jinzhu/gorm"
 	memcache "github.com/patrickmn/go-cache"
-	"github.com/zwirec/TGChatScanner/TGBotApi"
-	"github.com/zwirec/TGChatScanner/clarifaiApi"
+	"github.com/zwirec/TGChatScanner/TGBotAPI"
+	"github.com/zwirec/TGChatScanner/clarifaiAPI"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
-	"log"
 )
 
 var (
 	DB               *gorm.DB
 	DownloadRequests chan *file.FileBasic
-	CfApi            *clarifaiApi.ClarifaiApi
-	BotApi           *TGBotApi.BotApi
+	CfAPI            *clarifaiAPI.ClarifaiAPI
+	BotAPI           *TGBotAPI.BotAPI
 	Cache            *memcache.Cache
 	ErrLogger        *log.Logger
 	AccessLogger     *log.Logger
@@ -24,8 +25,8 @@ var (
 type AppContext struct {
 	DB               *gorm.DB
 	DownloadRequests chan *file.FileBasic
-	CfApi            *clarifaiApi.ClarifaiApi
-	BotApi           *TGBotApi.BotApi
+	CfAPI            *clarifaiAPI.ClarifaiAPI
+	BotAPI           *TGBotAPI.BotAPI
 	Cache            *memcache.Cache
 	ErrLogger        *log.Logger
 	AccessLogger     *log.Logger
@@ -42,8 +43,8 @@ var (
 func SetAppContext(context *AppContext) {
 	DB = context.DB
 	DownloadRequests = context.DownloadRequests
-	CfApi = context.CfApi
-	BotApi = context.BotApi
+	CfAPI = context.CfAPI
+	BotAPI = context.BotAPI
 	Cache = context.Cache
 	ErrLogger = context.ErrLogger
 	AccessLogger = context.ErrLogger

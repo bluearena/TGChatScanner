@@ -24,7 +24,7 @@ func CastToFileInfo(pf *file.PreparedFile) (*file.FileInfo, error) {
 	if pf.Link.Basics.Type != "photo" {
 		return nil, ErrWrongForkPath
 	}
-	return &file.FileInfo{pf.Link.Basics.FileId, pf.Link.FileDownloadUrl}, nil
+	return &file.FileInfo{pf.Link.Basics.FileId, pf.Link.FileDownloadURL}, nil
 }
 
 func CastFromDownloadedFile(df *file.DownloadedFile) (*file.CompleteFile, error) {

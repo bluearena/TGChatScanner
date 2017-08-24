@@ -15,7 +15,7 @@ type FileDownloadersPool struct {
 	WorkersNumber int
 }
 
-func (fdp *FileDownloadersPool) Run(queueSize int, finished sync.WaitGroup) chan *file.DownloadedFile {
+func (fdp *FileDownloadersPool) Run(queueSize int, finished *sync.WaitGroup) chan *file.DownloadedFile {
 	fdp.Out = make(chan *file.DownloadedFile, queueSize)
 	var wg sync.WaitGroup
 	wg.Add(fdp.WorkersNumber)
@@ -37,7 +37,7 @@ func (fdp *FileDownloadersPool) Run(queueSize int, finished sync.WaitGroup) chan
 
 func (fdp *FileDownloadersPool) runDownloader() {
 	for in := range fdp.In {
-		err := downloadFile(in.FileDownloadUrl, in.LocalPath)
+		err := downloadFile(in.FileDownloadURL, in.LocalPath)
 		df := &file.DownloadedFile{in, err}
 		select {
 		case fdp.Out <- df:
@@ -47,8 +47,8 @@ func (fdp *FileDownloadersPool) runDownloader() {
 	}
 }
 
-func downloadFile(url string, localPath string) error {
-	resp, err := http.Get(url)
+func downloadFile(URL string, localPath string) error {
+	resp, err := http.Get(URL)
 	if err != nil {
 		return err
 	}
