@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"time"
 	"fmt"
-	"database/sql"
 )
 
 type Image struct {
@@ -58,22 +57,19 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 	}
 
 	tx := db.Begin()
-	if err := db.Create(img).Error; err != nil {
+	if err := tx.Create(img).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("unable to save image: %s", err)
 	}
-	for _, t := range tags{
+	for _, t := range tags {
 		t.Chats = append(t.Chats, ch)
 		t.Images = append(t.Images, *img)
-		err := t.SaveIfUnique(db)
-		if err != nil{
+		err := t.SaveIfUnique(tx)
+		if err != nil {
 			tx.Rollback()
 			return fmt.Errorf("unable to save tag: %s", err)
 		}
 	}
 
-
-
 	return tx.Commit().Error
 }
-

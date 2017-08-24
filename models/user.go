@@ -12,7 +12,7 @@ type User struct {
 	CreatedAt time.Time  `json:"-"`
 	Username  string     `gorm:"size:64" json:"username"`
 	Chats     []Chat     `gorm:"many2many:users_chats;AssociationForeignKey:TGID;ForeignKey:TGID"`
-	Token     []Token    `gorm:"ForeignKey:TGID;AssociationForeignKey:ID"`
+	Token     []Token    `gorm:"ForeignKey:ID;AssociationForeignKey:TGID"`
 }
 
 func (u *User) GetTags(db *gorm.DB) ([]Tag, error) {

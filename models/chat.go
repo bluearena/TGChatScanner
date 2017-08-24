@@ -12,7 +12,7 @@ type Chat struct {
 	DeletedAt *time.Time `json:"-"`
 	Title     string     `json:"title"`
 	Users     []User     `json:"-"`
-	Images    []Image    `gorm:"ForeignKey:TGID;AssociationForeignKey:ChatID" json:"images,omitempty"`
+	Images    []Image    `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID" json:"images,omitempty"`
 	Tags      []Tag      `gorm:"many2many:chats_tags;AssociationForeignKey:ID;ForeignKey:TGID" json:"tags,omitempty"`
 }
 
