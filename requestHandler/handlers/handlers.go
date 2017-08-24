@@ -18,7 +18,9 @@ func GetImages(w http.ResponseWriter, req *http.Request) {
 	values := req.URL.Query()
 	img := models.Image{}
 
-	imgs, err := img.GetImgByParams(appContext.DB, values)
+	user := req.Context().Value(UserKey).(*models.User)
+
+	imgs, err := img.GetImgByParams(appContext.DB, values, user)
 
 	if err != nil {
 		response := ImagesJSON{Err: "server error",
