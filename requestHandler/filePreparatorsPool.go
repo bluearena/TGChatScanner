@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
+	"strconv"
 	"sync"
 )
 
@@ -48,12 +49,13 @@ func preparationWorker(toPrepare chan *file.FileBasic, result chan *file.Prepare
 		if err != nil {
 			appContext.ErrLogger.Printf("incorrect url during preparation stage on %s: %s", in.FileId, err)
 		}
+
 		status := file.Undefiend
 		fl := &file.FileLink{
 			FileDownloadURL: url,
-			LocalPath:       BuildLocalPath(fileId),
+			LocalPath:       BuildLocalPath(in),
 			Basics:          in,
-			Status: 		 &status,
+			Status:          &status,
 		}
 		fpResult := &file.PreparedFile{Link: fl}
 		appContext.ErrLogger.Printf("comes from prep: %+v", *fpResult)
@@ -65,10 +67,14 @@ func preparationWorker(toPrepare chan *file.FileBasic, result chan *file.Prepare
 	}
 }
 
-func BuildLocalPath(fileId string) string {
+func BuildLocalPath(f *file.FileBasic) string {
 	var buff bytes.Buffer
 	buff.WriteString(appContext.ImagesPath)
 	buff.WriteString("/")
-	buff.WriteString(fileId)
+	buff.WriteString(strconv.FormatInt(f.From, 10))
+	buff.WriteString("/")
+	buff.WriteString(f.Sent.Format("2006-02-01"))
+	buff.WriteString("/")
+	buff.WriteString(f.FileId)
 	return buff.String()
 }
