@@ -45,40 +45,29 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) ([]Image, error
 	return img_slice, nil
 }
 
-func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
-
-	var tags []Tag
-	for _, t := range ts {
-		tags = append(tags, Tag{Name: t})
-	}
-
+func (img *Image) CreateImageWithTags(db *gorm.DB, ts []Tag) error {
 	ch := Chat{
 		TGID: img.ChatID,
-		Tags: tags,
+		Tags: ts,
 	}
-
-	tx := db.Begin()
-	if err := tx.Create(img).Error; err != nil {
-		tx.Rollback()
+	if err := db.Create(img).Error; err != nil {
 		return fmt.Errorf("unable to save image: %s", err)
 	}
-	for _, t := range tags {
-		if err := t.CreateIfUnique(tx); err != nil {
-			tx.Rollback()
+	for _, t := range ts {
+		if err := t.CreateIfUnique(db); err != nil {
 			return fmt.Errorf("unable to save tag: %s", err)
 		}
-		log.Println(tx.NewRecord(&t))
-		if err := tx.Model(&t).Association("Images").Append(img).Error; err != nil {
-			tx.Rollback()
+
+		log.Println(db.NewRecord(&t))
+		if err := db.Model(&t).Association("Images").Append(img).Error; err != nil {
 			return fmt.Errorf("unable to save img-tag: %s", err)
 		}
-		if err := tx.Model(&t).
+		if err := db.Model(&t).
 			Association("Chats").Append(&ch).Error; err != nil {
-			tx.Rollback()
+
 			return fmt.Errorf("unable to save img-tag: %s", err)
 		}
 
 	}
-
-	return tx.Commit().Error
+	return db.Error
 }

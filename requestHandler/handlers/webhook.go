@@ -20,6 +20,7 @@ import (
 const (
 	UserStatsURL     = "/stats"
 	MaxFailedUpdates = 100
+	UpdateTimeout = 3 * time.Second
 )
 
 var (
@@ -69,7 +70,7 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if fb != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), UpdateTimeout)
 		defer cancel()
 		err := handleFile(fb, ctx)
 		if err != nil {

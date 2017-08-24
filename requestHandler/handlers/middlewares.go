@@ -56,8 +56,8 @@ func MiddlewareLogin(next http.Handler) http.Handler {
 					User: nil}
 				responseJSON, err := json.Marshal(response)
 				if err == nil {
-					writeResponse(w, string(responseJSON), http.StatusTeapot)
-					acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusTeapot)
+					writeResponse(w, string(responseJSON), http.StatusOK)
+					acc_l.Printf(`%s "%s %s %s %d"`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, http.StatusOK)
 					return
 				} else {
 					err_l.Println(err)
@@ -107,17 +107,18 @@ func ChatAutoStore(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		upid := update.UpdateId
-		upidKey := strconv.Itoa(upid)
-		up_num, err := appContext.Cache.IncrementInt(upidKey, 1)
+
+		updateID := update.UpdateId
+		updateIDKey := strconv.Itoa(updateID)
+		updateCount, err := appContext.Cache.IncrementInt(updateIDKey, 1)
 
 		if err != nil {
-			appContext.Cache.Set(upidKey, 1, time.Minute)
-			up_num = 1
+			appContext.Cache.Set(updateIDKey, 1, time.Minute)
+			updateCount = 1
 		}
-		if up_num > MaxFailedUpdates {
+		if updateCount > MaxFailedUpdates {
 			logHttpRequest(acc_l, req, http.StatusInternalServerError)
-			errLog.Printf("Max failed updates number exceeded on %d", upid)
+			errLog.Printf("Max failed updates number exceeded on %d", updateID)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
@@ -141,14 +142,17 @@ func ChatAutoStore(next http.Handler) http.Handler {
 			TGID:  message.Chat.Id,
 			Title: title,
 		}
+
 		err = chat.CreateIfNotExists(appContext.DB)
+
 		if err != nil {
 			logHttpRequest(acc_l, req, http.StatusInternalServerError)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		ctx := context.WithValue(req.Context(), appContext.MessageKey, message)
 
+		ctx := context.WithValue(req.Context(), appContext.MessageKey, message)
+		ctx = context.WithValue(ctx, appContext.UpdateIdKey, updateID)
 		next.ServeHTTP(w, req.WithContext(ctx))
 	})
 }
