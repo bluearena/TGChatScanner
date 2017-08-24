@@ -112,28 +112,17 @@ func AddSubscription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
 	}
 	db := appContext.Db
 
-	u := &models.User{
-		TGID:     user.Id,
-		Username: username,
-	}
-
 	ch := &models.Chat{
 		TGID:  chat.Id,
 		Title: chat.Title,
 	}
-	tx := db.Begin()
-	err = u.CreateIfNotExists(db)
-	if err != nil {
-		tx.Rollback()
-		return err
+	u := &models.User{
+		TGID:     user.Id,
+		Username: username,
 	}
-	err = db.Model(u).Association("Chats").Append(*ch).Error
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+	u.Chats = append(u.Chats, *ch)
 
-	return tx.Commit().Error
+	return u.CreateIfNotExists(db)
 }
 
 func SetUserToken(userId int) (string, error) {
