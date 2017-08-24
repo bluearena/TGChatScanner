@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"log"
 )
 
 type FileDownloadersPool struct {
@@ -23,8 +24,8 @@ func (fdp *FileDownloadersPool) Run(queueSize int, finished *sync.WaitGroup) cha
 
 	for i := 0; i < fdp.WorkersNumber; i++ {
 		go func() {
+			defer wg.Done()
 			fdp.runDownloader()
-			wg.Done()
 		}()
 	}
 	finished.Add(1)
@@ -32,6 +33,7 @@ func (fdp *FileDownloadersPool) Run(queueSize int, finished *sync.WaitGroup) cha
 		wg.Wait()
 		close(fdp.Out)
 		finished.Done()
+
 	}()
 	return fdp.Out
 }

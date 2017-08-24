@@ -4,6 +4,7 @@ import (
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
+	"log"
 )
 
 func (fp *ForkersPool) Run(out1queue int, out2queue int, finished *sync.WaitGroup) (out1 chan *file.FileLink, out2 chan *file.FileInfo) {
@@ -14,8 +15,8 @@ func (fp *ForkersPool) Run(out1queue int, out2queue int, finished *sync.WaitGrou
 	wg.Add(fp.WorkersNumber)
 	for i := 0; i < fp.WorkersNumber; i++ {
 		go func() {
+			defer wg.Done()
 			fp.fork()
-			wg.Done()
 		}()
 	}
 	finished.Add(1)

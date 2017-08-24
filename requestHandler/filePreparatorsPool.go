@@ -5,6 +5,7 @@ import (
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
+	"log"
 )
 
 type FilePreparationsPool struct {
@@ -21,8 +22,8 @@ func (fpp *FilePreparationsPool) Run(outBufferSize int, finished *sync.WaitGroup
 	wg.Add(fpp.WorkersNumber)
 	for i := 0; i < fpp.WorkersNumber; i++ {
 		go func() {
+			defer wg.Done()
 			preparationWorker(fpp.In, fpp.Out, fpp.Done)
-			wg.Done()
 		}()
 	}
 	finished.Add(1)

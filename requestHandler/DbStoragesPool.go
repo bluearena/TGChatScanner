@@ -5,6 +5,7 @@ import (
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
+	"log"
 )
 
 type DbStoragesPool struct {
@@ -17,14 +18,15 @@ func (dsp *DbStoragesPool) Run(finished *sync.WaitGroup) {
 	wg.Add(dsp.WorkersNumber)
 	for i := 0; i < dsp.WorkersNumber; i++ {
 		go func() {
+			defer wg.Done()
 			dsp.runStorager()
-			wg.Done()
 		}()
 	}
 	finished.Add(1)
 	go func() {
 		wg.Wait()
 		finished.Done()
+
 	}()
 }
 

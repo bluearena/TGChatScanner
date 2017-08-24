@@ -11,8 +11,8 @@ func (frp *PhotoRecognizersPool) Run(queueSize int, finished *sync.WaitGroup) ch
 	wg.Add(frp.WorkersNumber)
 	for i := 0; i < frp.WorkersNumber; i++ {
 		go func() {
+			defer wg.Done()
 			frp.runPhotoRecognizer()
-			wg.Done()
 		}()
 	}
 	finished.Add(1)

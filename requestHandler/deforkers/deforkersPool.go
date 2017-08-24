@@ -4,6 +4,7 @@ import (
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
+	"log"
 )
 
 func (dp *DeforkersPool) Run(queueSize int, finished *sync.WaitGroup) chan *file.CompleteFile {
@@ -12,8 +13,8 @@ func (dp *DeforkersPool) Run(queueSize int, finished *sync.WaitGroup) chan *file
 	wg.Add(dp.WorkersNumber)
 	for i := 0; i < dp.WorkersNumber; i++ {
 		go func() {
+			defer wg.Done()
 			dp.defork()
-			wg.Done()
 		}()
 	}
 	finished.Add(1)
@@ -29,6 +30,9 @@ func (dp *DeforkersPool) defork() {
 	for {
 		select {
 		case in1 := <-dp.In1:
+			if in1 == nil{
+				return
+			}
 			appContext.ErrLogger.Printf("comes on defork1: %+v", *in1)
 			out, err := dp.DeforkDownloaded(in1)
 			if err != nil {
@@ -42,6 +46,9 @@ func (dp *DeforkersPool) defork() {
 				return
 			}
 		case in2 := <-dp.In2:
+			if in2 == nil{
+				return
+			}
 			appContext.ErrLogger.Printf("comes on defork2: %+v", *in2)
 			out, err := dp.DeforkRecognized(in2)
 			if err != nil {
