@@ -1,7 +1,6 @@
 package forkers
 
 import (
-	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
 )
@@ -30,7 +29,6 @@ func (fp *ForkersPool) Run(out1queue int, out2queue int, finished *sync.WaitGrou
 
 func (fp *ForkersPool) fork() {
 	for in := range fp.In {
-		appContext.ErrLogger.Printf("comes on fork: %+v\n%+v", *in.Link,*in.Link.Basics)
 		if in.Error != nil {
 			continue
 		}
@@ -38,41 +36,51 @@ func (fp *ForkersPool) fork() {
 		out2, err2 := fp.ForkToFileInfo(in)
 		if err1 == nil && err2 == nil {
 
-			appContext.ErrLogger.Printf("comes from fork1: %+v\n%+v", *out1, *out1.Basics)
-
-			appContext.ErrLogger.Printf("comes from fork2: %+v\n%+v", *out2, *out2.Basics)
 			select {
+			case <-in.Link.Basics.BasicContext.Done():
+				continue
 			case fp.Out1 <- out1:
+
 				select {
 				case fp.Out2 <- out2:
+				case <-in.Link.Basics.BasicContext.Done():
+					continue
 				case <-fp.Done:
 					return
 				}
+
 			case fp.Out2 <- out2:
+
 				select {
 				case fp.Out1 <- out1:
+				case <-in.Link.Basics.BasicContext.Done():
+					continue
 				case <-fp.Done:
 					return
 				}
 			case <-fp.Done:
 				return
 			}
+
 		} else if err1 != nil && err2 == nil {
-			appContext.ErrLogger.Printf("comes from fork1: %+v", *out1)
 
 			select {
+			case <-in.Link.Basics.BasicContext.Done():
+				continue
 			case fp.Out2 <- out2:
 			case <-fp.Done:
 				return
 			}
-		} else if err1 == nil && err2 != nil {
-			appContext.ErrLogger.Printf("comes from fork2: %+v", *out2)
 
+		} else if err1 == nil && err2 != nil {
 			select {
+			case <-in.Link.Basics.BasicContext.Done():
+				continue
 			case fp.Out1 <- out1:
 			case <-fp.Done:
 				return
 			}
+
 		}
 	}
 }

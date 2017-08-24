@@ -9,7 +9,7 @@ type Tag struct {
 	gorm.Model
 	Name   string  `gorm:"not null; unique" json:"name"`
 	Images []Image `gorm:"many2many:images_tags" json:"-"`
-	Chats  []Chat  `gorm:"many2many:chats_tags"`
+	Chats  []Chat  `gorm:"many2many:chats_tags" json:"-"`
 }
 
 func (t *Tag) CreateIfUnique(db *gorm.DB) error {
@@ -17,7 +17,7 @@ func (t *Tag) CreateIfUnique(db *gorm.DB) error {
 		Create(t).
 		Error
 	if err == sql.ErrNoRows {
-		db.Where("name = ?",t.Name).First(&t)
+		db.Where("name = ?", t.Name).First(&t)
 		return nil
 	}
 	return err

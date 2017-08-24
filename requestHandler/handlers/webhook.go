@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"github.com/rs/xid"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"github.com/zwirec/TGChatScanner/models"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
-	"log"
 	"mime"
 	"net/http"
 	"net/url"
@@ -20,43 +20,24 @@ import (
 const (
 	UserStatsURL     = "/stats"
 	MaxFailedUpdates = 100
+	UpdateTimeout    = 3 * time.Second
 )
 
 var (
 	ErrUnexpectedCommand = errors.New("unexpected command")
+	ErrRequestTimeout    = errors.New("request timeout")
 )
 
 func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	message := ctx.Value(appContext.MessageKey).(*TGBotAPI.Message)
-
+	updateID := ctx.Value(appContext.UpdateIdKey).(int)
 	accLog := appContext.AccessLogger
 	errLog := appContext.ErrLogger
 
-	localCtx := make(map[string]interface{})
-	localCtx["from"] = message.Chat.Id
+	var fb *file.FileBasic
 
-	if message.Document != nil && isPicture(message.Document.MimeType) {
-		fb := &file.FileBasic{
-			FileId: message.Document.FileId,
-			Type:   "photo",
-			Sent:   time.Unix(int64(message.Date), 0),
-			From:   message.Chat.Id,
-		}
-		appContext.DownloadRequests <- fb
-	}
-
-	if pl := len(message.Photo); pl != 0 {
-		photo := message.Photo[pl-1]
-		fb := &file.FileBasic{
-			FileId: photo.FileId,
-			Type:   "photo",
-			Sent:   time.Unix(int64(message.Date), 0),
-			From:   message.Chat.Id,
-		}
-		log.Println(fb.Sent)
-		appContext.DownloadRequests <- fb
-	} else if len(message.Entities) != 0 && message.Entities[0].Type == "bot_command" {
+	if len(message.Entities) != 0 && message.Entities[0].Type == "bot_command" {
 		if err := BotCommandRouter(message); err != nil {
 			errLog.Println(err)
 			if err == ErrUnexpectedCommand {
@@ -68,7 +49,38 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 			}
 			return
 		}
+	} else if message.Document != nil && isPicture(message.Document.MimeType) {
+		fb = &file.FileBasic{
+			FileId: message.Document.FileId,
+			Type:   "photo",
+			Sent:   time.Unix(int64(message.Date), 0),
+			From:   message.Chat.Id,
+			Errorc: make(chan error, 1),
+		}
+
+	} else if pl := len(message.Photo); pl != 0 {
+		photo := message.Photo[pl-1]
+		fb = &file.FileBasic{
+			FileId: photo.FileId,
+			Type:   "photo",
+			Sent:   time.Unix(int64(message.Date), 0),
+			From:   message.Chat.Id,
+			Errorc: make(chan error, 1),
+		}
 	}
+
+	if fb != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), UpdateTimeout)
+		defer cancel()
+		err := handleFile(fb, ctx)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			logHttpRequest(accLog, req, http.StatusInternalServerError)
+			errLog.Printf("update %d: %s", updateID, err)
+			return
+		}
+	}
+
 	logHttpRequest(accLog, req, http.StatusOK)
 	w.WriteHeader(http.StatusOK)
 }
@@ -94,7 +106,6 @@ func BotCommandRouter(message *TGBotAPI.Message) error {
 			TGID:     message.From.Id,
 			Username: message.From.UserName,
 		}
-
 		err := usr.CreateIfNotExists(appContext.DB)
 		token, err := SetUserToken(message.From.Id)
 		if err != nil {
@@ -172,4 +183,20 @@ func isPicture(mtype string) bool {
 		return true
 	}
 	return false
+}
+
+func handleFile(fb *file.FileBasic, ctx context.Context) error {
+
+	fb.BasicContext = ctx
+	appContext.DownloadRequests <- fb
+
+	select {
+	case <-fb.BasicContext.Done():
+		return ErrRequestTimeout
+	case err := <-fb.Errorc:
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

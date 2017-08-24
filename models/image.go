@@ -12,16 +12,21 @@ type Image struct {
 	Src    string    `json:"src"`
 	Tags   []Tag     `gorm:"many2many:images_tags"`
 	Date   time.Time `gorm:"not null" json:"date"`
-	ChatID int64     `gorm:"not null" json:"-"`
-	Chat   Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID"`
+	ChatID int64     `gorm:"not null" json:"chat_id"`
+	Chat   Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID" json:"-"`
 }
 
 func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]Image, error) {
 	img_slice := []Image{}
+	chats_ids := []int64{}
+	for _, chat := range user.Chats {
+		chats_ids = append(chats_ids, chat.TGID)
+	}
+
 	q_tmp := db.Model(&Image{}).
-		Preload("Tags").
-		Preload("Chat").
-		Where("chat_id IN ?", user.Chats)
+		Select("DISTINCT images.*").
+		Preload("Tags", "name IN (?)", params["tag"]).
+		Where("chat_id in (?) ", chats_ids)
 
 	chat_id, ok := params["chat_id"]
 	if ok {
@@ -36,7 +41,11 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 		q_tmp = q_tmp.Where("date < ?", date_to[0])
 	}
 
-	if q_tmp.Find(&img_slice).RecordNotFound() {
+	if q_tmp.
+		Joins("inner join images_tags on images.id = images_tags.image_id inner join tags on images_tags.tag_id = tags.id").
+		Where("name in (?)", params["tag"]).
+		Find(&img_slice).
+		RecordNotFound() {
 		return nil, db.Error
 	}
 
@@ -47,44 +56,30 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 	return img_slice, nil
 }
 
-func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
-
-	var tags []Tag
-	for _, t := range ts {
-		tags = append(tags, Tag{Name: t})
-	}
-
+func (img *Image) CreateImageWithTags(db *gorm.DB, ts []Tag) error {
 	ch := Chat{
 		TGID: img.ChatID,
-		Tags: tags,
+		Tags: ts,
 	}
 
-	tx := db.Begin()
+	if err := db.Create(img).Error; err != nil {
 
-	if err := tx.Create(img).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("unable to save image: %s", err)
 	}
-	for _, t := range tags {
-		if err := t.CreateIfUnique(tx); err != nil {
-			tx.Rollback()
+	for _, t := range ts {
+		if err := t.CreateIfUnique(db); err != nil {
 			return fmt.Errorf("unable to save tag: %s", err)
 		}
 
-		if err := tx.Model(&t).
-			Association("Images").
-			Append(img).Error; err != nil {
-			tx.Rollback()
+		if err := db.Model(&t).Association("Images").Append(img).Error; err != nil {
 			return fmt.Errorf("unable to save img-tag: %s", err)
 		}
-		if err := tx.Model(&t).
+		if err := db.Model(&t).
 			Association("Chats").
 			Append(&ch).Error; err != nil {
-			tx.Rollback()
 			return fmt.Errorf("unable to save img-tag: %s", err)
 		}
 
 	}
-
-	return tx.Commit().Error
+	return db.Error
 }
