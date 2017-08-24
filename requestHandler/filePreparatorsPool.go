@@ -36,7 +36,7 @@ func (fpp *FilePreparationsPool) Run(outBufferSize int, finished *sync.WaitGroup
 
 func preparationWorker(toPrepare chan *file.FileBasic, result chan *file.PreparedFile, done chan struct{}) {
 	for in := range toPrepare {
-		appContext.SysLogger.Printf("comes on prep: %+v", *in)
+		appContext.ErrLogger.Printf("comes on prep: %+v", *in)
 		fileId := in.FileId
 		f, err := appContext.BotAPI.PrepareFile(fileId)
 		if err != nil {
@@ -44,17 +44,17 @@ func preparationWorker(toPrepare chan *file.FileBasic, result chan *file.Prepare
 			continue
 		}
 
-		url, err := appContext.BotApi.EncodeDownloadUrl(file.FilePath)
+		url, err := appContext.BotAPI.EncodeDownloadURL(f.FilePath)
 		if err != nil {
-			appContext.SysLogger.Printf("incorrect url during preparation stage on %s: %s", in.FileId, err)
+			appContext.ErrLogger.Printf("incorrect url during preparation stage on %s: %s", in.FileId, err)
 		}
-		fl := &FileLink{
-			FileDowloadUrl: url,
-			LocalPath:      BuildLocalPath(fileId),
-			Basics:         in,
+		fl := &file.FileLink{
+			FileDownloadURL: url,
+			LocalPath:       BuildLocalPath(fileId),
+			Basics:          in,
 		}
 		fpResult := &file.PreparedFile{Link: fl}
-		appContext.SysLogger.Printf("comes from prep: %+v", *fpResult)
+		appContext.ErrLogger.Printf("comes from prep: %+v", *fpResult)
 		select {
 		case result <- fpResult:
 		case <-done:

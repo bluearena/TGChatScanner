@@ -5,8 +5,8 @@ import (
 
 	"github.com/jinzhu/gorm"
 	memcache "github.com/patrickmn/go-cache"
-	"github.com/zwirec/TGChatScanner/TGBotAPI"
-	"github.com/zwirec/TGChatScanner/clarifaiAPI"
+	"github.com/zwirec/TGChatScanner/TGBotApi"
+	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 )
 

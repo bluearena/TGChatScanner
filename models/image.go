@@ -1,10 +1,10 @@
 package models
 
 import (
+	"fmt"
 	"github.com/jinzhu/gorm"
 	"net/url"
 	"time"
-	"fmt"
 )
 
 type Image struct {

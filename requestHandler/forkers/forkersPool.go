@@ -1,6 +1,7 @@
 package forkers
 
 import (
+	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
 )
@@ -29,7 +30,7 @@ func (fp *ForkersPool) Run(out1queue int, out2queue int, finished *sync.WaitGrou
 
 func (fp *ForkersPool) fork() {
 	for in := range fp.In {
-		appContext.SysLogger.Printf("comes on fork: %+v", *in)
+		appContext.ErrLogger.Printf("comes on fork: %+v", *in)
 		if in.Error != nil {
 			continue
 		}
@@ -37,9 +38,9 @@ func (fp *ForkersPool) fork() {
 		out2, err2 := fp.ForkToFileInfo(in)
 		if err1 == nil && err2 == nil {
 
-			appContext.SysLogger.Printf("comes from fork1: %+v", *out1)
+			appContext.ErrLogger.Printf("comes from fork1: %+v", *out1)
 
-			appContext.SysLogger.Printf("comes from fork2: %+v", *out2)
+			appContext.ErrLogger.Printf("comes from fork2: %+v", *out2)
 			select {
 			case fp.Out1 <- out1:
 				select {
@@ -57,7 +58,7 @@ func (fp *ForkersPool) fork() {
 				return
 			}
 		} else if err1 != nil && err2 == nil {
-			appContext.SysLogger.Printf("comes from fork1: %+v", *out1)
+			appContext.ErrLogger.Printf("comes from fork1: %+v", *out1)
 
 			select {
 			case fp.Out2 <- out2:
@@ -65,7 +66,7 @@ func (fp *ForkersPool) fork() {
 				return
 			}
 		} else if err1 == nil && err2 != nil {
-			appContext.SysLogger.Printf("comes from fork2: %+v", *out2)
+			appContext.ErrLogger.Printf("comes from fork2: %+v", *out2)
 
 			select {
 			case fp.Out1 <- out1:

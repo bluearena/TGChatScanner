@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/rs/xid"
-	"github.com/zwirec/TGChatScanner/TGBotAPI"
+	"github.com/zwirec/TGChatScanner/TGBotApi"
 	"github.com/zwirec/TGChatScanner/models"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"

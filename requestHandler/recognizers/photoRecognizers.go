@@ -27,10 +27,10 @@ func (frp *PhotoRecognizersPool) Run(queueSize int, finished *sync.WaitGroup) ch
 func (frp *PhotoRecognizersPool) runPhotoRecognizer() {
 	for in := range frp.In {
 
-		appContext.SysLogger.Printf("comes on rec: %+v", *in)
+		appContext.ErrLogger.Printf("comes on rec: %+v", *in)
 		tags, err := appContext.CfAPI.RecognizeImage(in.FileURL, 0.9)
 		rp := &RecognizedPhoto{in.FileId, tags, err}
-		appContext.SysLogger.Printf("comes from rec: %+v", *rp)
+		appContext.ErrLogger.Printf("comes from rec: %+v", *rp)
 		select {
 		case frp.Out <- rp:
 		case <-frp.Done:

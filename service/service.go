@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	memcache "github.com/patrickmn/go-cache"
-	"github.com/zwirec/TGChatScanner/TGBotAPI"
-	"github.com/zwirec/TGChatScanner/clarifaiAPI"
+	"github.com/zwirec/TGChatScanner/TGBotApi"
+	"github.com/zwirec/TGChatScanner/clarifaiApi"
 	"github.com/zwirec/TGChatScanner/modelManager"
 	"github.com/zwirec/TGChatScanner/requestHandler"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
@@ -55,10 +55,10 @@ type Service struct {
 	srv          *http.Server
 	reqHandler   *requestHandler.RequestHandler
 	config       Config
-	sysLogger    *log.Logger
+	ErrLogger    *log.Logger
 	accessLogger *log.Logger
 	notifier     chan os.Signal
-	poolsWG      *sync.WaitGroup
+	poolsWG      sync.WaitGroup
 	poolsDone    chan struct{}
 }
 
@@ -82,11 +82,11 @@ func (s *Service) Run() error {
 		accesslog = os.Stdout
 	}
 
-	s.sysLogger = log.New(errorlog, "", log.LstdFlags|log.Llongfile)
+	s.ErrLogger = log.New(errorlog, "", log.LstdFlags|log.Llongfile)
 	s.accessLogger = log.New(accesslog, "", log.LstdFlags)
 
 	if err := s.parseConfig(configURL); err != nil {
-		s.sysLogger.Println(err)
+		s.ErrLogger.Println(err)
 		return err
 	}
 
@@ -95,12 +95,12 @@ func (s *Service) Run() error {
 	db, err := modelManager.ConnectToDB(s.config["db"])
 
 	if err != nil {
-		s.sysLogger.Println(err)
+		s.ErrLogger.Println(err)
 		return err
 	}
 
 	if err := modelManager.InitDB(db); err != nil {
-		s.sysLogger.Println(err)
+		s.ErrLogger.Println(err)
 	}
 
 	clAPI := clarifaiAPI.NewClarifaiAPI(s.config["clarifai"]["api_key"].(string))
@@ -118,7 +118,7 @@ func (s *Service) Run() error {
 	poolStopper := make(chan struct{})
 
 	fp := &requestHandler.FilePreparationsPool{In: dr, Done: poolStopper, WorkersNumber: workers_n}
-	fpOut := fp.Run(workers_n*2, s.poolsWG)
+	fpOut := fp.Run(workers_n*2, &s.poolsWG)
 
 	forker := &forkers.ForkersPool{
 		In:             fpOut,
@@ -128,13 +128,13 @@ func (s *Service) Run() error {
 		ForkToFileLink: requestHandler.CastToFileLink,
 	}
 
-	fdIn, prIn := forker.Run(workers_n, workers_n, s.poolsWG)
+	fdIn, prIn := forker.Run(workers_n, workers_n, &s.poolsWG)
 
 	fd := &requestHandler.FileDownloadersPool{In: fdIn, Done: poolStopper, WorkersNumber: workers_n}
-	fdOut := fd.Run(workers_n, s.poolsWG)
+	fdOut := fd.Run(workers_n, &s.poolsWG)
 
 	pr := &recognizers.PhotoRecognizersPool{In: prIn, Done: poolStopper, WorkersNumber: workers_n}
-	prOut := pr.Run(workers_n, s.poolsWG)
+	prOut := pr.Run(workers_n, &s.poolsWG)
 
 	deforker := &deforkers.DeforkersPool{
 		In1:              fdOut,
@@ -144,10 +144,10 @@ func (s *Service) Run() error {
 		DeforkRecognized: requestHandler.CastFromRecognizedPhoto,
 	}
 
-	dbsIn := deforker.Run(workers_n*2, s.poolsWG)
+	dbsIn := deforker.Run(workers_n*2, &s.poolsWG)
 
 	dbs := &requestHandler.DbStoragesPool{In: dbsIn, WorkersNumber: workers_n}
-	dbs.Run(s.poolsWG)
+	dbs.Run(&s.poolsWG)
 
 	cache := memcache.New(5*time.Minute, 10*time.Minute)
 
@@ -159,7 +159,7 @@ func (s *Service) Run() error {
 	}
 
 	if err := os.MkdirAll(imgPath, os.ModePerm); err != nil {
-		s.sysLogger.Println(err)
+		s.ErrLogger.Println(err)
 	}
 
 	hostname, ok := s.config["chatscanner"]["host"].(string)
@@ -169,7 +169,7 @@ func (s *Service) Run() error {
 	if err != nil {
 		hostname, err = os.Hostname()
 		if err != nil {
-			s.sysLogger.Println(err)
+			s.ErrLogger.Println(err)
 			hostname = "localhost"
 		}
 	}
@@ -180,7 +180,7 @@ func (s *Service) Run() error {
 		BotAPI:           botAPI,
 		CfAPI:            clAPI,
 		Cache:            cache,
-		ErrLogger:        s.sysLogger,
+		ErrLogger:        s.ErrLogger,
 		AccessLogger:     s.accessLogger,
 		ImagesPath:       imgPath,
 		Hostname:         hostname,
@@ -205,20 +205,20 @@ func (s *Service) Run() error {
 func (s *Service) endpoint() (err error) {
 	s.sock, err = net.Listen("unix", s.config["server"]["socket"].(string))
 	if err != nil {
-		s.sysLogger.Println(err)
+		s.ErrLogger.Println(err)
 		os.Remove(s.config["server"]["socket"].(string))
 		s.sock, _ = net.Listen("unix", s.config["server"]["socket"].(string))
 	}
 	if err := os.Chmod(s.config["server"]["socket"].(string), 0777); err != nil {
-		s.sysLogger.Println(err)
+		s.ErrLogger.Println(err)
 		s.notifier <- syscall.SIGINT
 	}
 
-	s.sysLogger.Println("Socket opened")
-	s.sysLogger.Println("Server started")
+	s.ErrLogger.Println("Socket opened")
+	s.ErrLogger.Println("Server started")
 	log.Println("Server started")
 	if err := s.srv.Serve(s.sock); err != nil {
-		s.sysLogger.Println(err)
+		s.ErrLogger.Println(err)
 	}
 	return nil
 }
@@ -231,14 +231,14 @@ func (s *Service) parseConfig(URL string) error {
 	if err == nil {
 		res, err := http.Get(URL)
 		if err != nil {
-			s.sysLogger.Println(err)
+			s.ErrLogger.Println(err)
 			return err
 		}
 
 		configRaw, err = ioutil.ReadAll(res.Body)
 		res.Body.Close()
 		if err != nil {
-			s.sysLogger.Println(err)
+			s.ErrLogger.Println(err)
 			return err
 		}
 
@@ -246,13 +246,13 @@ func (s *Service) parseConfig(URL string) error {
 		var err error
 		configRaw, err = ioutil.ReadFile(URL)
 		if err != nil {
-			s.sysLogger.Println(err)
+			s.ErrLogger.Println(err)
 			return err
 		}
 	}
 
 	if err := json.Unmarshal(configRaw, &s.config); err != nil {
-		s.sysLogger.Println(err)
+		s.ErrLogger.Println(err)
 		return err
 	}
 
@@ -268,12 +268,12 @@ func (s *Service) signalProcessing() {
 func (s *Service) handler(c chan os.Signal) {
 	for {
 		<-c
-		s.sysLogger.Println("Gracefully stopping...")
+		s.ErrLogger.Println("Gracefully stopping...")
 		log.Println("Gracefully stopping...")
 		close(s.poolsDone)
 		s.poolsWG.Wait()
 		if err := s.srv.Shutdown(context.TODO()); err != nil {
-			s.sysLogger.Println(err)
+			s.ErrLogger.Println(err)
 			return
 		}
 		os.Exit(0)
