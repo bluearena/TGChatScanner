@@ -5,7 +5,6 @@ import (
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
-	"log"
 )
 
 type DbStoragesPool struct {
@@ -41,6 +40,5 @@ func (dsp *DbStoragesPool) runStorager() {
 			appContext.ErrLogger.Printf("failed on storing image: %s", err)
 			continue
 		}
-		log.Println("Done!")
 	}
 }

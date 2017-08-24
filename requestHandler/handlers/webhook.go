@@ -8,6 +8,7 @@ import (
 	"github.com/zwirec/TGChatScanner/models"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
+	"log"
 	"mime"
 	"net/http"
 	"net/url"
@@ -37,10 +38,10 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 
 	if message.Document != nil && isPicture(message.Document.MimeType) {
 		fb := &file.FileBasic{
-			FileId:  message.Document.FileId,
-			Type:    "photo",
-			Sent:    time.Unix(int64(message.Date), 0),
-			From:message.Chat.Id,
+			FileId: message.Document.FileId,
+			Type:   "photo",
+			Sent:   time.Unix(int64(message.Date), 0),
+			From:   message.Chat.Id,
 		}
 		appContext.DownloadRequests <- fb
 	}
@@ -48,11 +49,12 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 	if pl := len(message.Photo); pl != 0 {
 		photo := message.Photo[pl-1]
 		fb := &file.FileBasic{
-			FileId:  photo.FileId,
-			Type:    "photo",
-			Sent:    time.Unix(int64(message.Date), 0),
-			From:message.Chat.Id,
+			FileId: photo.FileId,
+			Type:   "photo",
+			Sent:   time.Unix(int64(message.Date), 0),
+			From:   message.Chat.Id,
 		}
+		log.Println(fb.Sent)
 		appContext.DownloadRequests <- fb
 	} else if len(message.Entities) != 0 && message.Entities[0].Type == "bot_command" {
 		if err := BotCommandRouter(message); err != nil {

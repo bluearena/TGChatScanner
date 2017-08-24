@@ -5,7 +5,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"net/url"
 	"time"
-	"log"
 )
 
 type Image struct {
@@ -17,9 +16,12 @@ type Image struct {
 	Chat   Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID"`
 }
 
-func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) ([]Image, error) {
+func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]Image, error) {
 	img_slice := []Image{}
-	q_tmp := db.Model(&Image{}).Preload("Tags").Preload("Chat")
+	q_tmp := db.Model(&Image{}).
+		Preload("Tags").
+		Preload("Chat").
+		Where("chat_id IN ?", user.Chats)
 
 	chat_id, ok := params["chat_id"]
 	if ok {
@@ -58,6 +60,7 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 	}
 
 	tx := db.Begin()
+
 	if err := tx.Create(img).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("unable to save image: %s", err)
@@ -67,15 +70,16 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 			tx.Rollback()
 			return fmt.Errorf("unable to save tag: %s", err)
 		}
-		log.Println(tx.NewRecord(&t))
-		if err := tx.Model(&t).Association("Images").Append(img).Error;
-			err != nil {
+
+		if err := tx.Model(&t).
+			Association("Images").
+			Append(img).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("unable to save img-tag: %s", err)
 		}
 		if err := tx.Model(&t).
-							 Association("Chats").Append(&ch).Error;
-			err != nil {
+			Association("Chats").
+			Append(&ch).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("unable to save img-tag: %s", err)
 		}

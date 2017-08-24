@@ -73,11 +73,11 @@ func NewService() *Service {
 
 func (s *Service) Run() error {
 
-	errorlog, err := os.OpenFile("error.log", os.O_APPEND|os.O_WRONLY, os.ModePerm)
+	errorlog, err := os.OpenFile("error.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		errorlog = os.Stderr
 	}
-	accesslog, err := os.OpenFile("access.log", os.O_APPEND|os.O_WRONLY, os.ModePerm)
+	accesslog, err := os.OpenFile("access.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		accesslog = os.Stdout
 	}
