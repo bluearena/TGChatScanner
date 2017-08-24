@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
+	"log"
+	"os"
 	"strconv"
 	"sync"
 )
@@ -74,6 +76,9 @@ func BuildLocalPath(f *file.FileBasic) string {
 	buff.WriteString(strconv.FormatInt(f.From, 10))
 	buff.WriteString("/")
 	buff.WriteString(f.Sent.Format("2006-02-01"))
+	if err := os.MkdirAll(buff.String(), os.ModePerm); err != nil {
+		log.Fatal(f)
+	}
 	buff.WriteString("/")
 	buff.WriteString(f.FileId)
 	return buff.String()
