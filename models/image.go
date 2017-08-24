@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"time"
 	"fmt"
+	"database/sql"
 )
 
 type Image struct {
@@ -45,6 +46,7 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) ([]Image, error
 }
 
 func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
+
 	var tags []Tag
 	for _, t := range ts {
 		tags = append(tags, Tag{Name: t})
@@ -56,29 +58,22 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 	}
 
 	tx := db.Begin()
-	ch.Tags = tags
-	if err := db.Model(&ch).Association("Tags").Append(tags).Error;
-		err != nil{
-		tx.Rollback()
-		return fmt.Errorf("unable to add association chats_tags")
-	}
-	img.Tags = ch.Tags
-	//for _, t := range tags {
-	//	t.Chats = append(t.Chats, ch)
-	//	if err := t.SaveIfUnique(db); err != nil {
-	//		tx.Rollback()
-	//		return fmt.Errorf("unable to save tag: %s", err)
-	//	}
-	//}
 	if err := db.Create(img).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("unable to save image: %s", err)
 	}
-	//if err := db.Model(&img).Association("Tags").Append(tags).Error;
-	//	err != nil {
-	//	tx.Rollback()
-	//	return fmt.Errorf("unable to add img_tag association: %s", err)
-	//}
+	for _, t := range tags{
+		t.Chats = append(t.Chats, ch)
+		t.Images = append(t.Images, *img)
+		err := t.SaveIfUnique(db)
+		if err != nil{
+			tx.Rollback()
+			return fmt.Errorf("unable to save tag: %s", err)
+		}
+	}
+
+
 
 	return tx.Commit().Error
 }
+
