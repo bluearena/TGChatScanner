@@ -52,25 +52,33 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 
 	ch := Chat{
 		TGID: img.ChatID,
+		Tags: tags,
 	}
 
 	tx := db.Begin()
-	for _, t := range tags {
-		t.Chats = append(t.Chats, ch)
-		if err := t.SaveIfUnique(db); err != nil {
-			tx.Rollback()
-			return fmt.Errorf("unable to save tag: %s", err)
-		}
+	ch.Tags = tags
+	if err := db.Model(&ch).Association("Tags").Append(tags).Error;
+		err != nil{
+		tx.Rollback()
+		return fmt.Errorf("unable to add association chats_tags")
 	}
+	img.Tags = ch.Tags
+	//for _, t := range tags {
+	//	t.Chats = append(t.Chats, ch)
+	//	if err := t.SaveIfUnique(db); err != nil {
+	//		tx.Rollback()
+	//		return fmt.Errorf("unable to save tag: %s", err)
+	//	}
+	//}
 	if err := db.Create(img).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("unable to save image: %s", err)
 	}
-	if err := db.Model(&img).Association("Tags").Append(tags).Error;
-		err != nil {
-		tx.Rollback()
-		return fmt.Errorf("unable to add img_tag association: %s", err)
-	}
+	//if err := db.Model(&img).Association("Tags").Append(tags).Error;
+	//	err != nil {
+	//	tx.Rollback()
+	//	return fmt.Errorf("unable to add img_tag association: %s", err)
+	//}
 
 	return tx.Commit().Error
 }
