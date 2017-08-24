@@ -9,7 +9,6 @@ import (
 	"github.com/zwirec/TGChatScanner/models"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
-	"log"
 	"mime"
 	"net/http"
 	"net/url"
@@ -21,7 +20,7 @@ import (
 const (
 	UserStatsURL     = "/stats"
 	MaxFailedUpdates = 100
-	UpdateTimeout = 3 * time.Second
+	UpdateTimeout    = 3 * time.Second
 )
 
 var (
