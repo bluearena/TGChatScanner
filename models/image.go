@@ -17,9 +17,12 @@ type Image struct {
 	Chat   Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID"`
 }
 
-func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) ([]Image, error) {
+func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]Image, error) {
 	img_slice := []Image{}
-	q_tmp := db.Model(&Image{}).Preload("Tags").Preload("Chat")
+	q_tmp := db.Model(&Image{}).
+		Preload("Tags").
+		Preload("Chat").
+		Where("chat_id IN ?", user.Chats)
 
 	chat_id, ok := params["chat_id"]
 	if ok {
@@ -50,7 +53,10 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []Tag) error {
 		TGID: img.ChatID,
 		Tags: ts,
 	}
+
+
 	if err := db.Create(img).Error; err != nil {
+
 		return fmt.Errorf("unable to save image: %s", err)
 	}
 	for _, t := range ts {
@@ -58,13 +64,12 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []Tag) error {
 			return fmt.Errorf("unable to save tag: %s", err)
 		}
 
-		log.Println(db.NewRecord(&t))
-		if err := db.Model(&t).Association("Images").Append(img).Error; err != nil {
+			if err := db.Model(&t).Association("Images").Append(img).Error; err != nil {
 			return fmt.Errorf("unable to save img-tag: %s", err)
 		}
 		if err := db.Model(&t).
-			Association("Chats").Append(&ch).Error; err != nil {
-
+			Association("Chats").
+			Append(&ch).Error; err != nil {
 			return fmt.Errorf("unable to save img-tag: %s", err)
 		}
 

@@ -9,6 +9,7 @@ import (
 	"github.com/zwirec/TGChatScanner/models"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
+	"log"
 	"mime"
 	"net/http"
 	"net/url"
