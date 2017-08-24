@@ -1,29 +1,13 @@
-package requestHandler
+package forkers
 
-import "sync"
+import (
+	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
+	"sync"
+)
 
-type FileInfo struct {
-	FileId  string
-	FileUrl string
-}
-
-type ForkersPool struct {
-	In             chan *PreparedFile
-	Out1           chan *FileLink
-	Out2           chan *FileInfo
-	Done           chan struct{}
-	ForkToFileLink InToFileLink
-	ForkToFileInfo InToFileInfo
-	WorkersNumber  int
-}
-
-type InToFileLink func(*PreparedFile) (*FileLink, error)
-
-type InToFileInfo func(result *PreparedFile) (*FileInfo, error)
-
-func (fp *ForkersPool) Run(out1queue int, out2queue int, finished sync.WaitGroup) (out1 chan *FileLink, out2 chan *FileInfo) {
-	fp.Out1 = make(chan *FileLink, out1queue)
-	fp.Out2 = make(chan *FileInfo, out2queue)
+func (fp *ForkersPool) Run(out1queue int, out2queue int, finished *sync.WaitGroup) (out1 chan *file.FileLink, out2 chan *file.FileInfo) {
+	fp.Out1 = make(chan *file.FileLink, out1queue)
+	fp.Out2 = make(chan *file.FileInfo, out2queue)
 	var wg sync.WaitGroup
 
 	wg.Add(fp.WorkersNumber)

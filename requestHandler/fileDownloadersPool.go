@@ -1,23 +1,22 @@
 package requestHandler
 
 import (
+	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"io"
 	"net/http"
 	"os"
 	"sync"
 )
 
-type DownloadedFile PreparedFile
-
 type FileDownloadersPool struct {
-	In            chan *FileLink
-	Out           chan *DownloadedFile
+	In            chan *file.FileLink
+	Out           chan *file.DownloadedFile
 	Done          chan struct{}
 	WorkersNumber int
 }
 
-func (fdp *FileDownloadersPool) Run(queueSize int, finished sync.WaitGroup) chan *DownloadedFile {
-	fdp.Out = make(chan *DownloadedFile, queueSize)
+func (fdp *FileDownloadersPool) Run(queueSize int, finished *sync.WaitGroup) chan *file.DownloadedFile {
+	fdp.Out = make(chan *file.DownloadedFile, queueSize)
 	var wg sync.WaitGroup
 	wg.Add(fdp.WorkersNumber)
 
@@ -39,8 +38,8 @@ func (fdp *FileDownloadersPool) Run(queueSize int, finished sync.WaitGroup) chan
 func (fdp *FileDownloadersPool) runDownloader() {
 	for in := range fdp.In {
 		appContext.SysLogger.Printf("comes on download: %+v", *in)
-		err := downloadFile(in.FileDowloadUrl, in.LocalPath)
-		df := &DownloadedFile{in, err}
+		err := downloadFile(in.FileDownloadURL, in.LocalPath)
+		df := &file.DownloadedFile{in, err}
 		appContext.SysLogger.Printf("comes from download: %+v", *df)
 		select {
 		case fdp.Out <- df:
@@ -51,8 +50,8 @@ func (fdp *FileDownloadersPool) runDownloader() {
 	}
 }
 
-func downloadFile(url string, localPath string) error {
-	resp, err := http.Get(url)
+func downloadFile(URL string, localPath string) error {
+	resp, err := http.Get(URL)
 	if err != nil {
 		return err
 	}

@@ -2,15 +2,17 @@ package requestHandler
 
 import (
 	"github.com/zwirec/TGChatScanner/models"
+	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
+	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
 )
 
-type DbStoragersPool struct {
-	In            chan *CompleteFile
+type DbStoragesPool struct {
+	In            chan *file.CompleteFile
 	WorkersNumber int
 }
 
-func (dsp *DbStoragersPool) Run(finished sync.WaitGroup) {
+func (dsp *DbStoragesPool) Run(finished *sync.WaitGroup) {
 	var wg sync.WaitGroup
 	wg.Add(dsp.WorkersNumber)
 	for i := 0; i < dsp.WorkersNumber; i++ {
@@ -26,15 +28,15 @@ func (dsp *DbStoragersPool) Run(finished sync.WaitGroup) {
 	}()
 }
 
-func (dsp *DbStoragersPool) runStorager() {
+func (dsp *DbStoragesPool) runStorager() {
 	for in := range dsp.In {
 		img := &models.Image{
 			Src:    in.LocalPath,
 			ChatID: in.Basics.Context["from"].(int64),
 		}
 		tags := in.Basics.Context["tags"].([]string)
-		if err := img.CreateImageWithTags(appContext.Db, tags); err != nil {
-			appContext.SysLogger.Printf("failed on storaging image: %s", err)
+		if err := img.CreateImageWithTags(appContext.DB, tags); err != nil {
+			appContext.ErrLogger.Printf("failed on storing image: %s", err)
 		}
 	}
 }

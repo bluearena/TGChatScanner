@@ -25,8 +25,5 @@ func InitDB(db *gorm.DB) error {
 	db.LogMode(true)
 	db.AutoMigrate(&models.User{}, &models.Chat{}, &models.Tag{}, models.Image{}, models.Token{})
 	db.Model(&models.Token{}).AddForeignKey("user_id", "users(tg_id)", "RESTRICT", "RESTRICT")
-	//db.Model(&models.Image{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
-	//db.Model(&models.Token{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT")
-	//db.Model(&models.Token{}).AddForeignKey("chat_id", "chats(id)", "RESTRICT", "RESTRICT")
 	return db.Error
 }

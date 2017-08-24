@@ -1,13 +1,19 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	memcache "github.com/patrickmn/go-cache"
-	"github.com/zwirec/TGChatScanner/TGBotApi"
-	"github.com/zwirec/TGChatScanner/clarifaiApi"
+	"github.com/zwirec/TGChatScanner/TGBotAPI"
+	"github.com/zwirec/TGChatScanner/clarifaiAPI"
 	"github.com/zwirec/TGChatScanner/modelManager"
 	"github.com/zwirec/TGChatScanner/requestHandler"
+	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
+	"github.com/zwirec/TGChatScanner/requestHandler/deforkers"
+	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
+	"github.com/zwirec/TGChatScanner/requestHandler/forkers"
+	"github.com/zwirec/TGChatScanner/requestHandler/recognizers"
 	"io/ioutil"
 	"log"
 	"net"
@@ -23,7 +29,7 @@ import (
 
 var (
 	home      = os.Getenv("HOME")
-	configUrl = os.Getenv("TGCHATSCANNER_REMOTE_CONFIG")
+	configURL = os.Getenv("TGCHATSCANNER_REMOTE_CONFIG")
 )
 
 func init() {
@@ -35,8 +41,8 @@ func init() {
 		home := u.HomeDir
 		fmt.Fprint(ioutil.Discard, home)
 	}
-	if configUrl == "" {
-		configUrl = home + "/.config/tgchatscanner/config.json"
+	if configURL == "" {
+		configURL = home + "/.config/tgchatscanner/config.json"
 	}
 }
 
@@ -47,31 +53,31 @@ type Service struct {
 	sock         net.Listener
 	mux          *http.ServeMux
 	srv          *http.Server
-	rAPIHandler  *requestHandler.RequestHandler
+	reqHandler   *requestHandler.RequestHandler
 	config       Config
 	sysLogger    *log.Logger
 	accessLogger *log.Logger
 	notifier     chan os.Signal
-	poolsWG      sync.WaitGroup
+	poolsWG      *sync.WaitGroup
 	poolsDone    chan struct{}
 }
 
 func NewService() *Service {
 	return &Service{
-		rAPIHandler: requestHandler.NewRequestHandler(),
-		mux:         http.NewServeMux(),
-		notifier:    make(chan os.Signal),
-		poolsDone:   make(chan struct{}),
+		reqHandler: requestHandler.NewRequestHandler(),
+		mux:        http.NewServeMux(),
+		notifier:   make(chan os.Signal),
+		poolsDone:  make(chan struct{}),
 	}
 }
 
 func (s *Service) Run() error {
 
-	errorlog, err := os.OpenFile("error.log", os.O_APPEND|os.O_WRONLY, 0777)
+	errorlog, err := os.OpenFile("error.log", os.O_APPEND|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		errorlog = os.Stderr
 	}
-	accesslog, err := os.OpenFile("access.log", os.O_APPEND|os.O_WRONLY, 0777)
+	accesslog, err := os.OpenFile("access.log", os.O_APPEND|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		accesslog = os.Stdout
 	}
@@ -79,7 +85,7 @@ func (s *Service) Run() error {
 	s.sysLogger = log.New(errorlog, "", log.LstdFlags|log.Llongfile)
 	s.accessLogger = log.New(accesslog, "", log.LstdFlags)
 
-	if err := s.parseConfig(configUrl); err != nil {
+	if err := s.parseConfig(configURL); err != nil {
 		s.sysLogger.Println(err)
 		return err
 	}
@@ -97,9 +103,9 @@ func (s *Service) Run() error {
 		s.sysLogger.Println(err)
 	}
 
-	clApi := clarifaiApi.NewClarifaiApi(s.config["clarifai"]["api_key"].(string))
+	clAPI := clarifaiAPI.NewClarifaiAPI(s.config["clarifai"]["api_key"].(string))
 
-	botApi := TGBotApi.NewBotApi(s.config["tg_bot_api"]["token"].(string))
+	botAPI := TGBotAPI.NewBotAPI(s.config["tg_bot_api"]["token"].(string))
 
 	workers_n, ok := s.config["server"]["workers"].(int)
 
@@ -107,14 +113,14 @@ func (s *Service) Run() error {
 		workers_n = 10
 	}
 
-	dr := make(chan *requestHandler.FileBasic, workers_n*2)
+	dr := make(chan *file.FileBasic, workers_n*2)
 
 	poolStopper := make(chan struct{})
 
-	fp := &requestHandler.FilePreparatorsPool{In: dr, Done: poolStopper, WorkersNumber: workers_n}
+	fp := &requestHandler.FilePreparationsPool{In: dr, Done: poolStopper, WorkersNumber: workers_n}
 	fpOut := fp.Run(workers_n*2, s.poolsWG)
 
-	forker := &requestHandler.ForkersPool{
+	forker := &forkers.ForkersPool{
 		In:             fpOut,
 		Done:           poolStopper,
 		WorkersNumber:  workers_n,
@@ -127,10 +133,10 @@ func (s *Service) Run() error {
 	fd := &requestHandler.FileDownloadersPool{In: fdIn, Done: poolStopper, WorkersNumber: workers_n}
 	fdOut := fd.Run(workers_n, s.poolsWG)
 
-	pr := &requestHandler.PhotoRecognizersPool{In: prIn, Done: poolStopper, WorkersNumber: workers_n}
+	pr := &recognizers.PhotoRecognizersPool{In: prIn, Done: poolStopper, WorkersNumber: workers_n}
 	prOut := pr.Run(workers_n, s.poolsWG)
 
-	deforker := &requestHandler.DeforkersPool{
+	deforker := &deforkers.DeforkersPool{
 		In1:              fdOut,
 		In2:              prOut,
 		WorkersNumber:    workers_n,
@@ -140,12 +146,17 @@ func (s *Service) Run() error {
 
 	dbsIn := deforker.Run(workers_n*2, s.poolsWG)
 
-	dbs := &requestHandler.DbStoragersPool{In: dbsIn, WorkersNumber: workers_n}
+	dbs := &requestHandler.DbStoragesPool{In: dbsIn, WorkersNumber: workers_n}
 	dbs.Run(s.poolsWG)
 
 	cache := memcache.New(5*time.Minute, 10*time.Minute)
 
 	imgPath, ok := s.config["chatscanner"]["images_path"].(string)
+
+	if !ok {
+		wd, _ := os.Getwd()
+		imgPath = wd + "/uploads/"
+	}
 
 	if err := os.MkdirAll(imgPath, os.ModePerm); err != nil {
 		s.sysLogger.Println(err)
@@ -163,22 +174,22 @@ func (s *Service) Run() error {
 		}
 	}
 
-	context := requestHandler.AppContext{
-		Db:               db,
+	context := appContext.AppContext{
+		DB:               db,
 		DownloadRequests: dr,
-		BotApi:           botApi,
-		CfApi:            clApi,
+		BotAPI:           botAPI,
+		CfAPI:            clAPI,
 		Cache:            cache,
-		SysLogger:        s.sysLogger,
+		ErrLogger:        s.sysLogger,
 		AccessLogger:     s.accessLogger,
 		ImagesPath:       imgPath,
 		Hostname:         hostname,
 	}
 
-	s.rAPIHandler.SetAppContext(&context)
-	s.rAPIHandler.RegisterHandlers()
+	appContext.SetAppContext(&context)
+	s.reqHandler.RegisterHandlers()
 
-	s.srv = &http.Server{Handler: s.rAPIHandler}
+	s.srv = &http.Server{Handler: s.reqHandler}
 
 	defer close(poolStopper)
 
@@ -212,13 +223,13 @@ func (s *Service) endpoint() (err error) {
 	return nil
 }
 
-func (s *Service) parseConfig(_url string) error {
+func (s *Service) parseConfig(URL string) error {
 	var configRaw []byte
 
-	_, err := url.Parse(_url)
+	_, err := url.Parse(URL)
 
 	if err == nil {
-		res, err := http.Get(_url)
+		res, err := http.Get(URL)
 		if err != nil {
 			s.sysLogger.Println(err)
 			return err
@@ -233,7 +244,7 @@ func (s *Service) parseConfig(_url string) error {
 
 	} else {
 		var err error
-		configRaw, err = ioutil.ReadFile(_url)
+		configRaw, err = ioutil.ReadFile(URL)
 		if err != nil {
 			s.sysLogger.Println(err)
 			return err
@@ -261,7 +272,7 @@ func (s *Service) handler(c chan os.Signal) {
 		log.Println("Gracefully stopping...")
 		close(s.poolsDone)
 		s.poolsWG.Wait()
-		if err := s.srv.Shutdown(nil); err != nil {
+		if err := s.srv.Shutdown(context.TODO()); err != nil {
 			s.sysLogger.Println(err)
 			return
 		}

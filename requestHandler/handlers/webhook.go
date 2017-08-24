@@ -1,11 +1,13 @@
-package requestHandler
+package handlers
 
 import (
 	"bytes"
 	"errors"
 	"github.com/rs/xid"
-	"github.com/zwirec/TGChatScanner/TGBotApi"
+	"github.com/zwirec/TGChatScanner/TGBotAPI"
 	"github.com/zwirec/TGChatScanner/models"
+	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
+	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"mime"
 	"net/http"
 	"net/url"
@@ -15,7 +17,7 @@ import (
 )
 
 const (
-	UserStatsUrl     = "/stats"
+	UserStatsURL     = "/stats"
 	MaxFailedUpdates = 100
 )
 
@@ -23,18 +25,18 @@ var (
 	ErrUnexpectedCommand = errors.New("unexpected command")
 )
 
-func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
+func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	message := ctx.Value(messageKey).(*TGBotApi.Message)
+	message := ctx.Value(appContext.MessageKey).(*TGBotAPI.Message)
 
 	accLog := appContext.AccessLogger
-	errLog := appContext.SysLogger
+	errLog := appContext.ErrLogger
 
 	localCtx := make(map[string]interface{})
 	localCtx["from"] = message.Chat.Id
 
 	if message.Document != nil && isPicture(message.Document.MimeType) {
-		fb := &FileBasic{
+		fb := &file.FileBasic{
 			FileId:  message.Document.FileId,
 			Type:    "photo",
 			Sent:    time.Unix(int64(message.Date), 0),
@@ -42,9 +44,10 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 		}
 		appContext.DownloadRequests <- fb
 	}
+
 	if pl := len(message.Photo); pl != 0 {
 		photo := message.Photo[pl-1]
-		fb := &FileBasic{
+		fb := &file.FileBasic{
 			FileId:  photo.FileId,
 			Type:    "photo",
 			Sent:    time.Unix(int64(message.Date), 0),
@@ -68,7 +71,7 @@ func BotUpdateHanlder(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func BotCommandRouter(message *TGBotApi.Message) error {
+func BotCommandRouter(message *TGBotAPI.Message) error {
 	r := regexp.MustCompile(`/(start(?:group)?|mystats|wantscan)?\s*`)
 	command := r.FindStringSubmatch(message.Text)
 	if len(command) == 0 {
@@ -79,7 +82,7 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 		fallthrough
 	case "startgroup":
 		hello := "Hello, chat " + message.Chat.Title
-		_, err := appContext.BotApi.SendMessage(message.Chat.Id, hello, true)
+		_, err := appContext.BotAPI.SendMessage(message.Chat.Id, hello, true)
 		return err
 	case "wantscan":
 		err := AddSubscription(&message.From, &message.Chat)
@@ -90,27 +93,27 @@ func BotCommandRouter(message *TGBotApi.Message) error {
 			Username: message.From.UserName,
 		}
 
-		err := usr.CreateIfNotExists(appContext.Db)
+		err := usr.CreateIfNotExists(appContext.DB)
 		token, err := SetUserToken(message.From.Id)
 		if err != nil {
 			return err
 		}
-		us := BuildUserStatUrl(token)
-		_, err = appContext.BotApi.SendMessage(message.Chat.Id, us, true)
+		us := BuildUserStatURL(token)
+		_, err = appContext.BotAPI.SendMessage(message.Chat.Id, us, true)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
-func AddSubscription(user *TGBotApi.User, chat *TGBotApi.Chat) (err error) {
+func AddSubscription(user *TGBotAPI.User, chat *TGBotAPI.Chat) (err error) {
 	var username string
 	if user.UserName != "" {
 		username = user.UserName
 	} else {
 		username = user.FirstName
 	}
-	db := appContext.Db
+	db := appContext.DB
 
 	ch := &models.Chat{
 		TGID:  chat.Id,
@@ -133,16 +136,16 @@ func SetUserToken(userId int) (string, error) {
 		UserID:    userId,
 	}
 
-	if err := appContext.Db.Save(t).Error; err != nil {
+	if err := appContext.DB.Save(t).Error; err != nil {
 		return "", err
 	}
 	return t.Token, nil
 }
 
-func BuildUserStatUrl(token string) string {
+func BuildUserStatURL(token string) string {
 	var buff bytes.Buffer
 	buff.WriteString(appContext.Hostname)
-	buff.WriteString(UserStatsUrl)
+	buff.WriteString(UserStatsURL)
 	buff.WriteString("?")
 	params := url.Values{}
 	params.Add("token", token)

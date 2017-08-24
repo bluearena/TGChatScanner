@@ -1,44 +1,24 @@
-package requestHandler
+package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/zwirec/TGChatScanner/models"
+	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	"log"
 	"net/http"
 	"strconv"
 )
 
-type UserJSON struct {
-	Err   string       `json:"error,omitempty"`
-	Model *models.User `json:"entity,omitempty"`
-}
+var UserKey = "user"
 
-type ImagesJSON struct {
-	Err    string         `json:"error"`
-	Images []models.Image `json:"images"`
-}
-
-type ChatsJSON struct {
-	Err   string        `json:"error"`
-	Chats []models.Chat `json:"chats"`
-}
-
-type TagsJSON struct {
-	Err  string       `json:"error"`
-	Tags []models.Tag `json:"tags"`
-}
-
-var user_key = "user"
-
-func getImages(w http.ResponseWriter, req *http.Request) {
-	errLog := appContext.SysLogger
+func GetImages(w http.ResponseWriter, req *http.Request) {
+	errLog := appContext.ErrLogger
 	accLog := appContext.AccessLogger
 
 	values := req.URL.Query()
 	img := models.Image{}
 
-	imgs, err := img.GetImgByParams(appContext.Db, values)
+	imgs, err := img.GetImgByParams(appContext.DB, values)
 
 	if err != nil {
 		response := ImagesJSON{Err: "server error",
@@ -75,8 +55,8 @@ func getImages(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func getChatTags(w http.ResponseWriter, req *http.Request) {
-	errLog := appContext.SysLogger
+func GetChatTags(w http.ResponseWriter, req *http.Request) {
+	errLog := appContext.ErrLogger
 	accLog := appContext.AccessLogger
 
 	values := req.URL.Query()
@@ -117,7 +97,7 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 
 	chat := models.Chat{TGID: chat_id}
 
-	tags, err := chat.GetTags(appContext.Db)
+	tags, err := chat.GetTags(appContext.DB)
 
 	if err != nil {
 		errLog.Println(err)
@@ -150,13 +130,13 @@ func getChatTags(w http.ResponseWriter, req *http.Request) {
 
 }
 
-func getUserTags(w http.ResponseWriter, req *http.Request) {
-	errLog := appContext.SysLogger
+func GetUserTags(w http.ResponseWriter, req *http.Request) {
+	errLog := appContext.ErrLogger
 	accLog := appContext.AccessLogger
 
-	user := req.Context().Value(user_key).(*models.User)
+	user := req.Context().Value(UserKey).(*models.User)
 
-	tags, err := user.GetTags(appContext.Db)
+	tags, err := user.GetTags(appContext.DB)
 
 	if err != nil {
 		errLog.Println(err)
@@ -190,13 +170,13 @@ func getUserTags(w http.ResponseWriter, req *http.Request) {
 
 }
 
-func getChats(w http.ResponseWriter, req *http.Request) {
-	errLog := appContext.SysLogger
+func GetChats(w http.ResponseWriter, req *http.Request) {
+	errLog := appContext.ErrLogger
 	accLog := appContext.AccessLogger
 
-	user := req.Context().Value(user_key).(*models.User)
+	user := req.Context().Value(UserKey).(*models.User)
 
-	if err := user.GetUsersChats(appContext.Db); err != nil {
+	if err := user.GetUsersChats(appContext.DB); err != nil {
 		errLog.Println(err)
 		response := ChatsJSON{Err: "system error",
 			Chats: nil}
@@ -213,36 +193,6 @@ func getChats(w http.ResponseWriter, req *http.Request) {
 		logHttpRequest(accLog, req, http.StatusOK)
 		return
 	}
-}
-
-func getTags(w http.ResponseWriter, req *http.Request) {
-	//TODO
-	fmt.Fprint(w, "tags.get")
-	return
-}
-
-func removeSubs(w http.ResponseWriter, req *http.Request) {
-	//TODO
-	fmt.Fprint(w, "subs.remove")
-	return
-}
-
-func validateLoginParams(values map[string]interface{}) (ok bool) {
-	if values["username"] == nil || values["password"] == nil {
-		return false
-	}
-	return true
-}
-
-func writeResponse(w http.ResponseWriter, data interface{}, status int) error {
-	w.WriteHeader(status)
-	if data != nil {
-		_, err := fmt.Fprint(w, data)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func logHttpRequest(l *log.Logger, req *http.Request, code int) {

@@ -1,21 +1,11 @@
-package requestHandler
+package recognizers
 
-import "sync"
+import (
+	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
+	"sync"
+)
 
-type PhotoRecognizersPool struct {
-	In            chan *FileInfo
-	Out           chan *RecognizedPhoto
-	Done          chan struct{}
-	WorkersNumber int
-}
-
-type RecognizedPhoto struct {
-	FileId string
-	Tags   []string
-	Error  error
-}
-
-func (frp *PhotoRecognizersPool) Run(queueSize int, finished sync.WaitGroup) chan *RecognizedPhoto {
+func (frp *PhotoRecognizersPool) Run(queueSize int, finished *sync.WaitGroup) chan *RecognizedPhoto {
 	frp.Out = make(chan *RecognizedPhoto, queueSize)
 	var wg sync.WaitGroup
 	wg.Add(frp.WorkersNumber)
@@ -38,7 +28,7 @@ func (frp *PhotoRecognizersPool) runPhotoRecognizer() {
 	for in := range frp.In {
 
 		appContext.SysLogger.Printf("comes on rec: %+v", *in)
-		tags, err := appContext.CfApi.RecognizeImage(in.FileUrl, 0.9)
+		tags, err := appContext.CfAPI.RecognizeImage(in.FileURL, 0.9)
 		rp := &RecognizedPhoto{in.FileId, tags, err}
 		appContext.SysLogger.Printf("comes from rec: %+v", *rp)
 		select {

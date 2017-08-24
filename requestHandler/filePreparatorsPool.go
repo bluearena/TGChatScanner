@@ -2,44 +2,26 @@ package requestHandler
 
 import (
 	"bytes"
+	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
+	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
-	"time"
 )
 
-type FileLink struct {
-	FileDowloadUrl string
-	LocalPath      string
-	Basics         *FileBasic
-}
-
-type PreparedFile struct {
-	Link  *FileLink
-	Error error
-}
-
-type FileBasic struct {
-	FileId string
-	Type   string
-	Sent   time.Time
-
-	Context map[string]interface{}
-}
-
-type FilePreparatorsPool struct {
-	In            chan *FileBasic
-	Out           chan *PreparedFile
+type FilePreparationsPool struct {
+	In            chan *file.FileBasic
+	Out           chan *file.PreparedFile
 	Done          chan struct{}
 	WorkersNumber int
 }
 
-func (fpp *FilePreparatorsPool) Run(outBufferSize int, finished sync.WaitGroup) chan *PreparedFile {
-	fpp.Out = make(chan *PreparedFile, outBufferSize)
+func (fpp *FilePreparationsPool) Run(outBufferSize int, finished *sync.WaitGroup) chan *file.PreparedFile {
+	fpp.Out = make(chan *file.PreparedFile, outBufferSize)
 	var wg sync.WaitGroup
 
 	wg.Add(fpp.WorkersNumber)
 	for i := 0; i < fpp.WorkersNumber; i++ {
 		go func() {
-			preparatorWorker(fpp.In, fpp.Out, fpp.Done)
+			preparationWorker(fpp.In, fpp.Out, fpp.Done)
 			wg.Done()
 		}()
 	}
@@ -52,13 +34,13 @@ func (fpp *FilePreparatorsPool) Run(outBufferSize int, finished sync.WaitGroup) 
 	return fpp.Out
 }
 
-func preparatorWorker(toPrepare chan *FileBasic, result chan *PreparedFile, done chan struct{}) {
+func preparationWorker(toPrepare chan *file.FileBasic, result chan *file.PreparedFile, done chan struct{}) {
 	for in := range toPrepare {
 		appContext.SysLogger.Printf("comes on prep: %+v", *in)
 		fileId := in.FileId
-		file, err := appContext.BotApi.PrepareFile(fileId)
+		f, err := appContext.BotAPI.PrepareFile(fileId)
 		if err != nil {
-			appContext.SysLogger.Printf("error during preparation stage on %s: %s", in.FileId, err)
+			appContext.ErrLogger.Printf("error during preparation stage on %s: %s", in.FileId, err)
 			continue
 		}
 
@@ -71,7 +53,7 @@ func preparatorWorker(toPrepare chan *FileBasic, result chan *PreparedFile, done
 			LocalPath:      BuildLocalPath(fileId),
 			Basics:         in,
 		}
-		fpResult := &PreparedFile{fl, nil}
+		fpResult := &file.PreparedFile{Link: fl}
 		appContext.SysLogger.Printf("comes from prep: %+v", *fpResult)
 		select {
 		case result <- fpResult:
