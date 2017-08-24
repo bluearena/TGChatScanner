@@ -16,9 +16,12 @@ type Image struct {
 	Chat   Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID"`
 }
 
-func (img *Image) GetImgByParams(db *gorm.DB, params url.Values) ([]Image, error) {
+func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]Image, error) {
 	img_slice := []Image{}
-	q_tmp := db.Model(&Image{}).Preload("Tags").Preload("Chat")
+	q_tmp := db.Model(&Image{}).
+		Preload("Tags").
+		Preload("Chat").
+		Where("chat_id IN ?", user.Chats)
 
 	chat_id, ok := params["chat_id"]
 	if ok {
