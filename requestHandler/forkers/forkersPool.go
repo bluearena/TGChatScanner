@@ -1,7 +1,6 @@
 package forkers
 
 import (
-	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
 )
