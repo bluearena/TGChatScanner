@@ -1,6 +1,9 @@
 package filetypes
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 const (
 	Undefiend       int32 = 0
@@ -11,11 +14,13 @@ const (
 )
 
 type FileBasic struct {
-	FileId string
-	Type   string
-	Sent   time.Time
-	From   int64
-	Tags   []string
+	FileId       string
+	Type         string
+	Sent         time.Time
+	From         int64
+	Tags         []string
+	Errorc       chan error
+	BasicContext context.Context
 }
 
 type FileLink struct {
@@ -24,6 +29,7 @@ type FileLink struct {
 	Basics          *FileBasic
 	Status          *int32
 }
+
 type PreparedFile struct {
 	Link  *FileLink
 	Error error

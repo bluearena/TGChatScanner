@@ -37,7 +37,8 @@ type AppContext struct {
 type key string
 
 var (
-	MessageKey key = "message"
+	MessageKey  key = "message"
+	UpdateIdKey key = "UpdateID"
 )
 
 func SetAppContext(context *AppContext) {

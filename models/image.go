@@ -3,9 +3,9 @@ package models
 import (
 	"fmt"
 	"github.com/jinzhu/gorm"
+	"log"
 	"net/url"
 	"time"
-	"log"
 )
 
 type Image struct {
@@ -68,14 +68,12 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 			return fmt.Errorf("unable to save tag: %s", err)
 		}
 		log.Println(tx.NewRecord(&t))
-		if err := tx.Model(&t).Association("Images").Append(img).Error;
-			err != nil {
+		if err := tx.Model(&t).Association("Images").Append(img).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("unable to save img-tag: %s", err)
 		}
 		if err := tx.Model(&t).
-							 Association("Chats").Append(&ch).Error;
-			err != nil {
+			Association("Chats").Append(&ch).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("unable to save img-tag: %s", err)
 		}
