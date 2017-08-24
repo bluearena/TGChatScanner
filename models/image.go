@@ -4,6 +4,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"net/url"
 	"time"
+	"fmt"
 )
 
 type Image struct {
@@ -57,18 +58,18 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []string) error {
 	for _, t := range tags {
 		if err := t.SaveIfUnique(db); err != nil {
 			tx.Rollback()
-			return err
+			return fmt.Errorf("unable to save tag: %s",err)
 		}
 		if err := db.Model(&t).Association("Chats").Append(&ch).Error; err != nil {
 			tx.Rollback()
-			return err
+			return fmt.Errorf("unable to save association chats_tags: %s",err)
 		}
 	}
 
 	img.Tags = tags
 	if err := db.Save(img).Error; err != nil {
 		tx.Rollback()
-		return err
+		return fmt.Errorf("unable to save image: %s",err)
 	}
 
 	return tx.Commit().Error

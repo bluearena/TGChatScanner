@@ -43,8 +43,8 @@ func (api *BotApi) EncodeDownloadUrl(filePath string) (string, error) {
 	buff.WriteString(api.Token)
 	buff.WriteString("/")
 	buff.WriteString(filePath)
-	u,err := url.Parse(buff.String())
-	if err != nil{
+	u, err := url.Parse(buff.String())
+	if err != nil {
 		return "", err
 	}
 	return u.String(), nil
