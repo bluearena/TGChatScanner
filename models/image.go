@@ -10,7 +10,7 @@ import (
 type Image struct {
 	gorm.Model
 	Src    string    `json:"src"`
-	Tags   []Tag     `gorm:"many2many:images_tags"`
+	Tags   []Tag     `gorm:"many2many:images_tags" json:"tags,omitempty"`
 	Date   time.Time `gorm:"not null" json:"date"`
 	ChatID int64     `gorm:"not null" json:"chat_id"`
 	Chat   Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID" json:"-"`
@@ -29,7 +29,10 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 	tags, ok := params["tag"]
 
 	if ok {
-		q_tmp = q_tmp.Preload("Tags", "name IN (?)", tags)
+		q_tmp = q_tmp.
+			Preload("Tags", "name IN (?)", tags).
+			Joins("inner join images_tags on images.id = images_tags.image_id inner join tags on images_tags.tag_id = tags.id").
+			Where("name in (?)", params["tag"])
 	}
 
 	q_tmp = q_tmp.Where("chat_id in (?) ", chats_ids)
@@ -48,8 +51,6 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 	}
 
 	if q_tmp.
-		Joins("inner join images_tags on images.id = images_tags.image_id inner join tags on images_tags.tag_id = tags.id").
-		Where("name in (?)", params["tag"]).
 		Find(&img_slice).
 		RecordNotFound() {
 		return nil, db.Error
