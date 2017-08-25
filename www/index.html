@@ -1,1 +1,41 @@
-It works
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Photo Gallery</title>
+
+    <link rel="stylesheet" type="text/css" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="bower_components/select2/dist/css/select2.min.css">
+    <link rel="stylesheet" type="text/css" href="bower_components/select2-bootstrap-theme/dist/select2-bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="bower_components/magnific-popup/dist/magnific-popup.css">
+
+    <script type="text/javascript" src="bower_components/jquery/dist/jquery.min.js"></script>
+    <script type="text/javascript" src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="bower_components/select2/dist/js/select2.full.min.js"></script>
+    <script type="text/javascript" src="bower_components/salvattore/dist/salvattore.min.js"></script>
+    <script type="text/javascript" src="bower_components/magnific-popup/dist/jquery.magnific-popup.min.js"></script>
+
+
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+    <script type="text/javascript" src="js/main.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-xs-3">
+                <select id="chat_select">
+                    <option value="0" selected="selected">All chats</option>
+                </select>
+            </div>
+            
+            <div class="col-xs-9">
+                <select id="tags_select" multiple="multiple"></select>
+            </div>
+        </div>
+        
+        <div id="content" class="row well" data-columns></div>
+    </div>
+</body>
+
+</html>
