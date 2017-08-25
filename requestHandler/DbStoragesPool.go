@@ -6,6 +6,7 @@ import (
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"sync"
+	"strings"
 )
 
 type DbStoragesPool struct {
@@ -33,7 +34,7 @@ func (dsp *DbStoragesPool) Run(finished *sync.WaitGroup) {
 func (dsp *DbStoragesPool) runStorager() {
 	for in := range dsp.In {
 		img := &models.Image{
-			Src:    in.LocalPath,
+			Src:    strings.TrimPrefix(in.LocalPath, appContext.ImagesPath),
 			ChatID: in.Basics.From,
 			Date:   in.Basics.Sent,
 		}
