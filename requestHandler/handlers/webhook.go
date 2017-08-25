@@ -25,6 +25,7 @@ const (
 	CommandType  = "command"
 	PictureType  = "picture"
 	DocumentType = "doc"
+
 )
 
 var (

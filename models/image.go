@@ -10,10 +10,10 @@ import (
 type Image struct {
 	gorm.Model
 	Src    string    `json:"src"`
-	Tags   []Tag     `gorm:"many2many:images_tags"`
+	Tags   []Tag     `gorm:"many2many:images_tags" json:"tags,omitempty"`
 	Date   time.Time `gorm:"not null" json:"date"`
 	ChatID int64     `gorm:"not null" json:"chat_id"`
-	Chat   Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID"`
+	Chat   Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID" json:"-"`
 }
 
 func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]Image, error) {
@@ -24,8 +24,18 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 	}
 
 	q_tmp := db.Model(&Image{}).
-		Preload("Tags", "name IN (?)", params["tag"]).
-	/*Preload("Chat").*/ Where("chat_id in (?) ", chats_ids)
+		Select("DISTINCT images.*")
+
+	tags, ok := params["tag"]
+
+	if ok {
+		q_tmp = q_tmp.
+			Preload("Tags", "name IN (?)", tags).
+			Joins("inner join images_tags on images.id = images_tags.image_id inner join tags on images_tags.tag_id = tags.id").
+			Where("name in (?)", params["tag"])
+	}
+
+	q_tmp = q_tmp.Where("chat_id in (?) ", chats_ids)
 
 	chat_id, ok := params["chat_id"]
 	if ok {
@@ -39,13 +49,8 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 	if ok {
 		q_tmp = q_tmp.Where("date < ?", date_to[0])
 	}
-	//tags, ok := params["tag"]
-	//if ok {
-	//	q_tmp = q_tmp.Model(&Tag{}).Where("name IN (?)", tags)
-	//}
+
 	if q_tmp.
-	Joins("inner join images_tags on images.id = images_tags.image_id inner join tags on images_tags.tag_id = tags.id").
-	//Where("name in (?)", params["tag"]).
 		Find(&img_slice).
 		RecordNotFound() {
 		return nil, db.Error
