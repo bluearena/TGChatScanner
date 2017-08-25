@@ -66,15 +66,12 @@ function setToken() {
 
 function setTags() {
     let defer = $.Deferred();
-
     if (selectedChatId == 0) {
         var url = "/api/v1/users.tags";
-        var data = function(params) { return {} }
+        var data = {};
     } else {
         var url = "/api/v1/chat.tags";
-        var data = function(params) {
-            return { "chat_id": selectedChatId };
-        }
+        var data = {"chat_id": selectedChatId};
     }
 
     $.ajax({
@@ -82,6 +79,7 @@ function setTags() {
         dataType: 'json',
         type: 'get',
         headers: { 'X-User-Token': token },
+        data: data
     }).then(function(data) {
         let i = 0;
 
@@ -159,11 +157,12 @@ $(function() {
 
         $('#chat_select').on('select2:select', function(event) {
             selectedChatId = event.params.data.id;
+
             setTags().then(function() {
                 $('#tags_select').empty();
 
                 $('#tags_select').select2({
-                    data: tags[selectedChatId],
+                    data: tags,
                     allowClear: true
                 });
             });
