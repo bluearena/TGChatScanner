@@ -47,9 +47,9 @@ func (fdp *FileDownloadersPool) runDownloader() {
 		appContext.ErrLogger.Printf("comes from download: %+v", *df)
 
 		select {
-		case <-df.Link.Basics.BasicContext.Done():
-			continue
+
 		case fdp.Out <- df:
+		case <-df.Link.Basics.BasicContext.Done():
 		case <-fdp.Done:
 			return
 		}

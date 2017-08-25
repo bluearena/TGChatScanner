@@ -2,8 +2,8 @@ package filetypes
 
 import (
 	"context"
-	"time"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
+	"time"
 )
 
 const (

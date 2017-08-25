@@ -48,7 +48,7 @@ func (dsp *DbStoragesPool) runStorager() {
 			NonBlockingNotify(in.Basics.Errorc, err)
 		} else {
 			select {
-			case <- in.Basics.BasicContext.Done():
+			case <-in.Basics.BasicContext.Done():
 				tx.Rollback()
 			default:
 				NonBlockingNotify(in.Basics.Errorc, nil)

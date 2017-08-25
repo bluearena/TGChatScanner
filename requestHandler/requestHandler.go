@@ -21,8 +21,8 @@ func (r *RequestHandler) RegisterHandlers() {
 	r.mux.Handle("/api/v1/chat.tags", MiddlewareLogin(http.HandlerFunc(GetChatTags)))
 	r.mux.Handle("/api/v1/users.tags", MiddlewareLogin(http.HandlerFunc(GetUserTags)))
 	r.mux.Handle("/"+appContext.BotAPI.Token, ExtractUpdate(
-														BotRouter(
-															http.HandlerFunc(BotUpdateHandler))))
+		BotRouter(
+			http.HandlerFunc(BotUpdateHandler))))
 }
 
 func (r *RequestHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {

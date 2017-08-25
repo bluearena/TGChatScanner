@@ -3,8 +3,8 @@ package handlers
 type key string
 
 var (
-	UserKey    key = "user"
+	UserKey       key = "user"
 	UpdateTypeKey key = "uptype"
-	UpdateKey  key = "update"
-	MessageKey key = "message"
+	UpdateKey     key = "update"
+	MessageKey    key = "message"
 )
