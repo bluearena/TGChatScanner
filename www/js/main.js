@@ -64,36 +64,6 @@ function setToken() {
     return defer.promise();
 };
 
-// function setChats() {
-//     let defer = $.Deferred();
-
-//     $.ajax({
-//             url: '/api/v1/chats.get',
-//             dataType: 'json',
-//             type: 'get',
-//             headers: { 'X-User-Token': token },
-//         })
-//         .then(function(data) {
-//             chats = [{
-//                 id: '0',
-//                 text: 'All chats'
-//             }];
-
-//             data['chats'].sort(function(a, b) {
-//                     return a.title.localeCompare(b.title);
-//                 })
-//                 .forEach(function(item) {
-//                     chats.push({
-//                         id: item.chat_id,
-//                         text: item.title
-//                     });
-//                 });
-
-//             defer.resolve();
-//             return defer;
-//         });
-// };
-
 function setTags() {
     let defer = $.Deferred();
 
@@ -149,8 +119,6 @@ function handleChats(data) {
                 text: item.title
             });
         });
-
-    // console.log(results);
 
     return { results: results };
 }
