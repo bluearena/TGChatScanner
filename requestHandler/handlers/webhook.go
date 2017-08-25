@@ -94,12 +94,12 @@ func BotCommandRouter(message *TGBotAPI.Message) error {
 			hello := createHello(&message.Chat)
 			_, err := appContext.BotAPI.SendMessage(message.Chat.Id, hello, true)
 			return err
-		}else if cmLen == 3 && command[2] == "newtoken"{
+		} else if cmLen == 3 && command[2] == "newtoken" {
 			return authorizeAccess(message)
 		}
 	case "wantscan":
 		err := AddSubscription(&message.From, &message.Chat)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 		answer := "Subscription +"
@@ -107,7 +107,9 @@ func BotCommandRouter(message *TGBotAPI.Message) error {
 
 		return err
 	case "mystats":
-		return  authorizeAccess(message)
+		return authorizeAccess(message)
+	case "noscan":
+		return removeSubsription(message.From.Id, message.Chat.Id)
 	}
 	return nil
 }
@@ -207,12 +209,12 @@ func autoCreateChat(message *TGBotAPI.Message) error {
 	return chat.CreateIfNotExists(appContext.DB)
 }
 
-func createHello(chat *TGBotAPI.Chat) string{
+func createHello(chat *TGBotAPI.Chat) string {
 	var hello bytes.Buffer
 	hello.WriteString("Hello, ")
 	if chat.Type == "private" {
 		hello.WriteString("user ")
-	} else{
+	} else {
 		hello.WriteString("chat ")
 	}
 	hello.WriteString(chat.Title)
@@ -224,7 +226,7 @@ func createHello(chat *TGBotAPI.Chat) string{
 }
 
 func authorizeAccess(message *TGBotAPI.Message) error {
-	if message.Chat.Type != "private"{
+	if message.Chat.Type != "private" {
 		botUrl := "https://telegram.me/chatscannerbot?start"
 		answer := "Ask here: " + botUrl
 		_, err := appContext.BotAPI.SendMessage(message.Chat.Id, answer, true)
@@ -242,6 +244,23 @@ func authorizeAccess(message *TGBotAPI.Message) error {
 	us := BuildUserStatURL(token)
 	_, err = appContext.BotAPI.SendMessage(message.Chat.Id, us, true)
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func removeSubsription(userId int, chatId int64) error {
+	usr := models.User{
+		TGID: userId,
+	}
+	ch := models.Chat{
+		TGID: chatId,
+	}
+	db := appContext.DB
+	errdb := db.Model(&usr).Association("Chats").Delete(&ch).Error
+	if errdb != nil {
+		appContext.ErrLogger.Printf("fail on removing user-chat: user %v, chat %v: %s", userId, chatId, errdb)
+		_, err := appContext.BotAPI.SendMessage(chatId, "Try again", true)
 		return err
 	}
 	return nil

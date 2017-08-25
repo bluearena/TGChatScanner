@@ -90,3 +90,4 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []Tag) error {
 	}
 	return db.Error
 }
+
