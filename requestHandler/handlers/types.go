@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"github.com/zwirec/TGChatScanner/models"
-	"net/http"
 	"encoding/json"
+	"github.com/zwirec/TGChatScanner/models"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
+	"net/http"
 )
 
 type UserJSON struct {
@@ -27,7 +27,7 @@ type TagsJSON struct {
 	Tags []models.Tag `json:"tags"`
 }
 
-func (uj *UserJSON) Response(w http.ResponseWriter, r *http.Request, status int){
+func (uj *UserJSON) Response(w http.ResponseWriter, r *http.Request, status int) {
 	responseJSON, err := json.Marshal(uj)
 	if err != nil {
 		writeResponse(w, nil, http.StatusInternalServerError)
@@ -39,7 +39,7 @@ func (uj *UserJSON) Response(w http.ResponseWriter, r *http.Request, status int)
 	logHttpRequest(appContext.AccessLogger, r, status)
 }
 
-func (tj *TagsJSON) Response(w http.ResponseWriter, r *http.Request, status int){
+func (tj *TagsJSON) Response(w http.ResponseWriter, r *http.Request, status int) {
 	responseJSON, err := json.Marshal(tj)
 	if err != nil {
 		writeResponse(w, nil, http.StatusInternalServerError)
@@ -47,11 +47,11 @@ func (tj *TagsJSON) Response(w http.ResponseWriter, r *http.Request, status int)
 		logHttpRequest(appContext.AccessLogger, r, http.StatusInternalServerError)
 		return
 	}
-	writeResponse(w, string(responseJSON),status)
+	writeResponse(w, string(responseJSON), status)
 	logHttpRequest(appContext.AccessLogger, r, status)
 }
 
-func (ij *ImagesJSON) Response(w http.ResponseWriter, r *http.Request, status int){
+func (ij *ImagesJSON) Response(w http.ResponseWriter, r *http.Request, status int) {
 	responseJSON, err := json.Marshal(ij)
 	if err != nil {
 		writeResponse(w, nil, http.StatusInternalServerError)
@@ -63,7 +63,7 @@ func (ij *ImagesJSON) Response(w http.ResponseWriter, r *http.Request, status in
 	logHttpRequest(appContext.AccessLogger, r, status)
 }
 
-func (cj *ChatsJSON) Response(w http.ResponseWriter, r *http.Request, status int){
+func (cj *ChatsJSON) Response(w http.ResponseWriter, r *http.Request, status int) {
 	responseJSON, err := json.Marshal(cj)
 	if err != nil {
 		writeResponse(w, nil, http.StatusInternalServerError)

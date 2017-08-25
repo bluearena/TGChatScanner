@@ -49,8 +49,7 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 
 	err := autoCreateChat(message)
 	if err != nil {
-		logHttpRequest(accLog, req, http.StatusInternalServerError)
-		w.WriteHeader(http.StatusInternalServerError)
+		responseAndLog(w, req, http.StatusInternalServerError)
 		return
 	}
 
@@ -59,7 +58,9 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 	switch uptype {
 	case CommandType:
 		err = BotCommandRouter(message)
-		if err != nil {
+		if err == ErrUnexpectedCommand {
+			errLog.Printf("Unexpected command: %s", message.Text)
+		} else if err != nil {
 			status = http.StatusInternalServerError
 			errLog.Println(err)
 		}
@@ -81,8 +82,7 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 		status = http.StatusInternalServerError
 		errLog.Printf("update %d: %s", updateID, err)
 	}
-	logHttpRequest(accLog, req, status)
-	w.WriteHeader(status)
+	responseAndLog(w, req, status)
 }
 
 func BotCommandRouter(message *TGBotAPI.Message) error {
@@ -115,7 +115,7 @@ func BotCommandRouter(message *TGBotAPI.Message) error {
 		_, err = appContext.BotAPI.SendMessage(chatId, answer, true)
 		return err
 	case "noscan":
-		if err := removeSubsription(message.From.Id,chatId); err != nil{
+		if err := removeSubsription(message.From.Id, chatId); err != nil {
 			return responseTryAgain(chatId)
 		}
 	}

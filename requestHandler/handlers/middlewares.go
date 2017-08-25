@@ -76,7 +76,7 @@ func BotRouter(next http.Handler) http.Handler {
 		} else if l := len(message.Photo); l != 0 {
 			upType = PictureType
 		} else {
-			responseAndLog(w,req,http.StatusOK)
+			responseAndLog(w, req, http.StatusOK)
 			return
 		}
 		ctx = context.WithValue(ctx, UpdateTypeKey, upType)
@@ -92,7 +92,7 @@ func ExtractUpdate(next http.Handler) http.HandlerFunc {
 
 		if err != nil {
 			errLog.Printf("error during reading bot request: %s", err)
-			responseAndLog(w,req,http.StatusOK)
+			responseAndLog(w, req, http.StatusOK)
 			return
 		}
 
@@ -100,12 +100,12 @@ func ExtractUpdate(next http.Handler) http.HandlerFunc {
 		err = json.Unmarshal(body, &update)
 		if err != nil {
 			errLog.Printf("error during unmarshaling request: %s: %s", req.URL.String(), err)
-			responseAndLog(w,req,http.StatusInternalServerError)
+			responseAndLog(w, req, http.StatusInternalServerError)
 			return
 		}
 		if getUpdatesCount(&update) > MaxFailedUpdates {
 			errLog.Printf("max failed updates number exceeded on %d", update.UpdateId)
-			responseAndLog(w,req,http.StatusInternalServerError)
+			responseAndLog(w, req, http.StatusInternalServerError)
 			return
 		}
 		ctx := context.WithValue(req.Context(), UpdateKey, &update)
@@ -141,11 +141,10 @@ func getUpdatesCount(update *TGBotAPI.Update) int {
 	return updatesCount
 }
 
-func responseAndLog(w http.ResponseWriter, req *http.Request, status int){
-	logHttpRequest(appContext.AccessLogger, req,status)
+func responseAndLog(w http.ResponseWriter, req *http.Request, status int) {
+	logHttpRequest(appContext.AccessLogger, req, status)
 	w.WriteHeader(status)
 }
-
 
 func writeResponse(w http.ResponseWriter, data interface{}, status int) error {
 	w.WriteHeader(status)
