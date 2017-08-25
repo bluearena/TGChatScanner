@@ -52,6 +52,9 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 		responseAndLog(w, req, http.StatusInternalServerError)
 		return
 	}
+	if message.Chat.Type != "channel"{
+		setUserTitle(message)
+	}
 
 	status := http.StatusOK
 
@@ -283,7 +286,11 @@ func removeSubsription(userId int, chatId int64) error {
 	}
 	return nil
 }
-
+func setUserTitle(message *TGBotAPI.Message){
+	if message.From.UserName == ""{
+		message.From.UserName = message.From.FirstName
+	}
+}
 func responseTryAgain(chatId int64) error {
 	_, err := appContext.BotAPI.SendMessage(chatId, "Try again", true)
 	return err
