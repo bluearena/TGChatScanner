@@ -58,13 +58,11 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 			errLog.Println(err)
 		}
 		status = http.StatusOK
-
 	case DocumentType:
 		fb := file.NewFileBasic(message, "photo", message.Document.FileId)
 		ctx, cancel := context.WithTimeout(context.Background(), UpdateTimeout)
 		defer cancel()
 		err = handleFile(fb, ctx)
-
 	case PictureType:
 		photo := message.Photo[len(message.Photo)-1]
 		fb := file.NewFileBasic(message, "photo", photo.FileId)
@@ -76,7 +74,6 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		status = http.StatusInternalServerError
 		errLog.Printf("update %d: %s", updateID, err)
-		return
 	}
 	logHttpRequest(accLog, req, status)
 	w.WriteHeader(status)
