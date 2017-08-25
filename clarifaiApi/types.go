@@ -46,6 +46,18 @@ type (
 		ConceptData ConceptData `json:"data"`
 	}
 
+	OutputConfig struct {
+		Language string `json:"language"`
+	}
+
+	OutputInf struct {
+		OutputConfig OutputConfig `json:"output_config"`
+	}
+
+	Modl struct {
+		OutputInf OutputInf `json:"output_info"`
+	}
+
 	ConceptData struct {
 		Concepts []Concept `json:"concepts"`
 	}
@@ -65,6 +77,7 @@ type (
 
 	Request struct {
 		Inputs []Input `json:"inputs"`
+		Modl   Modl    `json:"model"`
 	}
 
 	Response struct {

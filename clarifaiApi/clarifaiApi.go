@@ -35,11 +35,13 @@ func (ca *ClarifaiAPI) RecognizeImage(URL string, minProbability float64) ([]str
 
 // Recognize images and return tags
 func (ca *ClarifaiAPI) RecognizeImages(URLs []string, minProbability float64) ([][]string, error) {
-	requestBody := Request{make([]Input, len(URLs))}
+	requestBody := Request{make([]Input, len(URLs)), Modl{}}
 
 	for i, URL := range URLs {
 		requestBody.Inputs[i] = Input{Data: Data{Image{URL}}}
 	}
+
+	requestBody.Modl.OutputInf.OutputConfig.Language = "ru"
 
 	b, err := json.Marshal(requestBody)
 	if err != nil {
