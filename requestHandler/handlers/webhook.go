@@ -44,7 +44,6 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 	message := ctx.Value(MessageKey).(*TGBotAPI.Message)
 	uptype := ctx.Value(UpdateTypeKey).(string)
 
-	accLog := appContext.AccessLogger
 	errLog := appContext.ErrLogger
 
 	err := autoCreateChat(message)
@@ -236,7 +235,7 @@ func createHello(chat *TGBotAPI.Chat) string {
 
 func authorizeAccess(message *TGBotAPI.Message) error {
 	if message.Chat.Type != "private" {
-		botUrl := "https://telegram.me/chatscannerbot?start"
+		botUrl := "https://telegram.me/chatscannerbot?start=newtoken"
 		answer := "Ask here: " + botUrl
 		_, err := appContext.BotAPI.SendMessage(message.Chat.Id, answer, true)
 		return err
