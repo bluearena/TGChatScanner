@@ -287,8 +287,8 @@ func createLoggers() (accLog *log.Logger, errLog *log.Logger) {
 	if err != nil {
 		accesslog = os.Stdout
 	}
-	accLog = log.New(errorlog, "", log.LstdFlags|log.Llongfile)
-	errLog = log.New(accesslog, "", log.LstdFlags)
+	errLog = log.New(errorlog, "", log.LstdFlags|log.Llongfile)
+	accLog = log.New(accesslog, "", log.LstdFlags)
 	return accLog, errLog
 }
 
