@@ -69,14 +69,12 @@ func (API *BotAPI) PrepareFile(fileId string) (File, error) {
 	response, err := API.SendGetToAPI("getFile", &params)
 	defer response.Body.Close()
 	if err != nil {
-		//TODO: Parse error
 		return File{}, err
 	}
 
 	body, err := ioutil.ReadAll(response.Body)
 
 	if err != nil {
-		//TODO: determine what kind of error it could be and handle it
 		return File{}, err
 	}
 
