@@ -1,7 +1,6 @@
 package requestHandler
 
 import (
-	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
 	"io"
 	"net/http"
@@ -39,15 +38,11 @@ func (fdp *FileDownloadersPool) Run(queueSize int, finished *sync.WaitGroup) cha
 
 func (fdp *FileDownloadersPool) runDownloader() {
 	for in := range fdp.In {
-
-		appContext.ErrLogger.Printf("comes on download: %+v", *in)
 		err := downloadFile(in.FileDownloadURL, in.LocalPath)
 
 		df := &file.DownloadedFile{in, err}
-		appContext.ErrLogger.Printf("comes from download: %+v", *df)
 
 		select {
-
 		case fdp.Out <- df:
 		case <-df.Link.Basics.BasicContext.Done():
 		case <-fdp.Done:
