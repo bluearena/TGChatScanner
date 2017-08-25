@@ -106,12 +106,10 @@ func BotCommandRouter(message *TGBotAPI.Message) error {
 		return err
 	case "mystats":
 		if message.Chat.Type != "private"{
-			url := "https://telegram.me/chatscanner?start"
+			url := "https://telegram.me/chatscannerbot?start"
 			answer := "Ask here: " + url
 			_, err := appContext.BotAPI.SendMessage(message.Chat.Id, answer, true)
-			if err != nil {
-				return err
-			}
+			return err
 		}
 		usr := models.User{
 			TGID:     message.From.Id,
