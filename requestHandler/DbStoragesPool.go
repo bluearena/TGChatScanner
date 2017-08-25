@@ -5,8 +5,8 @@ import (
 	"github.com/zwirec/TGChatScanner/models"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
-	"sync"
 	"strings"
+	"sync"
 )
 
 type DbStoragesPool struct {
