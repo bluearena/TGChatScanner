@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"fmt"
 )
 
 const (
@@ -51,6 +52,9 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 		responseAndLog(w, req, http.StatusInternalServerError)
 		return
 	}
+	if message.Chat.Type != "channel"{
+		setUserTitle(message)
+	}
 
 	status := http.StatusOK
 
@@ -62,6 +66,7 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 			err = nil
 		} else if err != nil {
 			status = http.StatusInternalServerError
+			errLog.Printf("update %d:%s", updateID, err)
 		}
 	case DocumentType:
 		fb := file.NewFileBasic(message, "photo", message.Document.FileId)
@@ -99,14 +104,19 @@ func BotCommandRouter(message *TGBotAPI.Message) error {
 	case "start newtoken":
 		fallthrough
 	case "mystats":
+		if err := AddSubscription(&message.From, &message.Chat);
+			err != nil {
+			appContext.ErrLogger.Printf("Fail to add subscription %v: %s", message.From, err)
+			return responseTryAgain(chatId)
+		}
 		if err := authorizeAccess(message); err != nil {
-			appContext.ErrLogger.Printf("Fail to authorize %v", message.From)
+			appContext.ErrLogger.Printf("Fail to authorize %v: %s", message.From,err)
 			return responseTryAgain(chatId)
 		}
 	case "wantscan":
 		err := AddSubscription(&message.From, &message.Chat)
 		if err != nil {
-			appContext.ErrLogger.Printf("Fail to add subscription %v", message.From)
+			appContext.ErrLogger.Printf("Fail to add subscription %v: %s", message.From, err)
 			return responseTryAgain(chatId)
 		}
 		answer := "Subscription +"
@@ -114,6 +124,7 @@ func BotCommandRouter(message *TGBotAPI.Message) error {
 		return err
 	case "noscan":
 		if err := removeSubsription(message.From.Id, chatId); err != nil {
+			appContext.ErrLogger.Println(err)
 			return responseTryAgain(chatId)
 		}
 	}
@@ -244,8 +255,13 @@ func authorizeAccess(message *TGBotAPI.Message) error {
 		Username: message.From.UserName,
 	}
 	err := usr.CreateIfNotExists(appContext.DB)
+	if err != nil{
+		appContext.ErrLogger.Println(err)
+		return err
+	}
 	token, err := SetUserToken(message.From.Id)
 	if err != nil {
+		appContext.ErrLogger.Println(err)
 		return err
 	}
 	us := BuildUserStatURL(token)
@@ -266,11 +282,15 @@ func removeSubsription(userId int, chatId int64) error {
 	db := appContext.DB
 	err := db.Model(&usr).Association("Chats").Delete(&ch).Error
 	if err != nil {
-		appContext.ErrLogger.Printf("fail on removing user-chat: user %v, chat %v: %s", userId, chatId, err)
+		return fmt.Errorf("fail on removing user-chat: user %v, chat %v: %s", userId, chatId, err)
 	}
-	return err
+	return nil
 }
-
+func setUserTitle(message *TGBotAPI.Message){
+	if message.From.UserName == ""{
+		message.From.UserName = message.From.FirstName
+	}
+}
 func responseTryAgain(chatId int64) error {
 	_, err := appContext.BotAPI.SendMessage(chatId, "Try again", true)
 	return err

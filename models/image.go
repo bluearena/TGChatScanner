@@ -28,11 +28,11 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 
 	tags, ok := params["tag"]
 
+	query = query.Preload("Tags").
+		Joins("inner join images_tags on images.id = images_tags.image_id inner join tags on images_tags.tag_id = tags.id")
+
 	if ok {
-		query = query.
-			Preload("Tags", "name IN (?)", tags).
-			Joins("inner join images_tags on images.id = images_tags.image_id inner join tags on images_tags.tag_id = tags.id").
-			Where("name in (?)", params["tag"])
+		query.Where("name in (?)", tags)
 	}
 
 	query = query.Where("chat_id in (?) ", chatIDs)
@@ -51,7 +51,7 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 	}
 
 	if query.
-		Find(&imgSlice).
+	Find(&imgSlice).
 		RecordNotFound() {
 		return nil, db.Error
 	}
