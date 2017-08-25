@@ -14,12 +14,14 @@ const APIURL = "https://api.clarifai.com/v2/models/aaa03c23b3724a16a56b629203edc
 type ClarifaiAPI struct {
 	httpClient *http.Client
 	APIKey     string
+	APIUrl     string
 }
 
-func NewClarifaiAPI(APIKey string) *ClarifaiAPI {
+func NewClarifaiAPI(APIKey string, APIUrl string) *ClarifaiAPI {
 	return &ClarifaiAPI{
 		httpClient: &http.Client{},
 		APIKey:     APIKey,
+		APIUrl:     APIUrl,
 	}
 }
 
@@ -33,7 +35,6 @@ func (ca *ClarifaiAPI) RecognizeImage(URL string, minProbability float64) ([]str
 	return result[0], nil
 }
 
-// Recognize images and return tags
 func (ca *ClarifaiAPI) RecognizeImages(URLs []string, minProbability float64) ([][]string, error) {
 	requestBody := Request{make([]Input, len(URLs)), Modl{}}
 
