@@ -56,8 +56,12 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 
 	switch uptype {
 	case CommandType:
-		if errcom := BotCommandRouter(message); errcom == ErrUnexpectedCommand {
+		err = BotCommandRouter(message)
+		if err == ErrUnexpectedCommand {
 			errLog.Printf("update %d unexpected command: %s", updateID, message.Text)
+			err = nil
+		} else if err != nil {
+			status = http.StatusInternalServerError
 		}
 	case DocumentType:
 		fb := file.NewFileBasic(message, "photo", message.Document.FileId)
