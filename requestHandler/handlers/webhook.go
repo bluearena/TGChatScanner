@@ -30,7 +30,13 @@ const (
 var (
 	ErrUnexpectedCommand = errors.New("unexpected command")
 	ErrRequestTimeout    = errors.New("request timeout")
+	CommandsMatcher      *regexp.Regexp
 )
+
+func init() {
+	rp := `^/((?:no|want)scan|start(?:\s+newtoken)?|mystats|startgroup)\s*(@chatscannerbot)?$`
+	CommandsMatcher = regexp.MustCompile(rp)
+}
 
 func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
@@ -80,39 +86,42 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func BotCommandRouter(message *TGBotAPI.Message) error {
-	r := regexp.MustCompile(`/(start(?:group)?|mystats|wantscan)?\s*(newtoken)?\s*`)
-	command := r.FindStringSubmatch(message.Text)
-	if len(command) == 0 {
+	command := CommandsMatcher.FindStringSubmatch(message.Text)
+	if len(command) < 2 {
 		return ErrUnexpectedCommand
 	}
-	cmLen := len(command)
+	chatId := message.Chat.Id
 	switch command[1] {
 	case "start":
 		fallthrough
 	case "startgroup":
-		if cmLen == 2 {
-			hello := createHello(&message.Chat)
-			_, err := appContext.BotAPI.SendMessage(message.Chat.Id, hello, true)
-			return err
-		} else if cmLen == 3 && command[2] == "newtoken" {
-			return authorizeAccess(message)
+		hello := createHello(&message.Chat)
+		_, err := appContext.BotAPI.SendMessage(message.Chat.Id, hello, true)
+		return err
+	case "start newtoken":
+		fallthrough
+	case "mystats":
+		if err := authorizeAccess(message); err != nil {
+			appContext.ErrLogger.Printf("Fail to authorize %v", message.From)
+			return responseTryAgain(chatId)
 		}
 	case "wantscan":
 		err := AddSubscription(&message.From, &message.Chat)
 		if err != nil {
-			return err
+			appContext.ErrLogger.Printf("Fail to add subscription %v", message.From)
+			return responseTryAgain(chatId)
 		}
 		answer := "Subscription +"
-		_, err = appContext.BotAPI.SendMessage(message.Chat.Id, answer, true)
-
+		_, err = appContext.BotAPI.SendMessage(chatId, answer, true)
 		return err
-	case "mystats":
-		return authorizeAccess(message)
 	case "noscan":
-		return removeSubsription(message.From.Id, message.Chat.Id)
+		if err := removeSubsription(message.From.Id,chatId); err != nil{
+			return responseTryAgain(chatId)
+		}
 	}
 	return nil
 }
+
 func AddSubscription(user *TGBotAPI.User, chat *TGBotAPI.Chat) (err error) {
 	var username string
 	if user.UserName != "" {
@@ -257,11 +266,14 @@ func removeSubsription(userId int, chatId int64) error {
 		TGID: chatId,
 	}
 	db := appContext.DB
-	errdb := db.Model(&usr).Association("Chats").Delete(&ch).Error
-	if errdb != nil {
-		appContext.ErrLogger.Printf("fail on removing user-chat: user %v, chat %v: %s", userId, chatId, errdb)
-		_, err := appContext.BotAPI.SendMessage(chatId, "Try again", true)
-		return err
+	err := db.Model(&usr).Association("Chats").Delete(&ch).Error
+	if err != nil {
+		appContext.ErrLogger.Printf("fail on removing user-chat: user %v, chat %v: %s", userId, chatId, err)
 	}
-	return nil
+	return err
+}
+
+func responseTryAgain(chatId int64) error {
+	_, err := appContext.BotAPI.SendMessage(chatId, "Try again", true)
+	return err
 }
