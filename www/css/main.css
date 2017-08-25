@@ -67,9 +67,9 @@ button {
     height: 50%;
 }*/
 
-/*#content[data-columns]::before {
+#content[data-columns]::before {
     content: '4 col-lg-3';
-}*/
+}
 
 #main-view {
     display: inline-flex;
