@@ -34,13 +34,6 @@ type AppContext struct {
 	Hostname         string
 }
 
-type key string
-
-var (
-	MessageKey  key = "message"
-	UpdateIdKey key = "UpdateID"
-)
-
 func SetAppContext(context *AppContext) {
 	DB = context.DB
 	DownloadRequests = context.DownloadRequests
@@ -48,7 +41,7 @@ func SetAppContext(context *AppContext) {
 	BotAPI = context.BotAPI
 	Cache = context.Cache
 	ErrLogger = context.ErrLogger
-	AccessLogger = context.ErrLogger
+	AccessLogger = context.AccessLogger
 	ImagesPath = context.ImagesPath
 	Hostname = context.Hostname
 }

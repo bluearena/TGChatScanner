@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	"github.com/jinzhu/gorm"
-	"log"
 	"net/url"
 	"time"
 )
@@ -26,7 +25,7 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 
 	q_tmp := db.Model(&Image{}).
 		Preload("Tags", "name IN (?)", params["tag"]).
-		/*Preload("Chat").*/ Where("chat_id in (?) ", chats_ids)
+	/*Preload("Chat").*/ Where("chat_id in (?) ", chats_ids)
 
 	chat_id, ok := params["chat_id"]
 	if ok {
@@ -45,8 +44,8 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 	//	q_tmp = q_tmp.Model(&Tag{}).Where("name IN (?)", tags)
 	//}
 	if q_tmp.
-		Joins("inner join images_tags on images.id = images_tags.image_id inner join tags on images_tags.tag_id = tags.id").
-		Where("name in (?)", params["tag"]).
+	Joins("inner join images_tags on images.id = images_tags.image_id inner join tags on images_tags.tag_id = tags.id").
+	//Where("name in (?)", params["tag"]).
 		Find(&img_slice).
 		RecordNotFound() {
 		return nil, db.Error
@@ -65,7 +64,6 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []Tag) error {
 		Tags: ts,
 	}
 
-
 	if err := db.Create(img).Error; err != nil {
 
 		return fmt.Errorf("unable to save image: %s", err)
@@ -75,7 +73,7 @@ func (img *Image) CreateImageWithTags(db *gorm.DB, ts []Tag) error {
 			return fmt.Errorf("unable to save tag: %s", err)
 		}
 
-			if err := db.Model(&t).Association("Images").Append(img).Error; err != nil {
+		if err := db.Model(&t).Association("Images").Append(img).Error; err != nil {
 			return fmt.Errorf("unable to save img-tag: %s", err)
 		}
 		if err := db.Model(&t).

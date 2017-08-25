@@ -1,0 +1,11 @@
+2017/08/25 03:00:14 /home/danm/go/src/github.com/zwirec/TGChatScanner/service/service.go:215: Socket opened
+2017/08/25 03:00:14 /home/danm/go/src/github.com/zwirec/TGChatScanner/service/service.go:216: Server started
+2017/08/25 03:02:11 /home/danm/go/src/github.com/zwirec/TGChatScanner/service/service.go:269: Gracefully stopping...
+2017/08/25 03:02:11 /home/danm/go/src/github.com/zwirec/TGChatScanner/service/service.go:219: http: Server closed
+2017/08/25 03:02:28 /home/danm/go/src/github.com/zwirec/TGChatScanner/service/service.go:215: Socket opened
+2017/08/25 03:02:28 /home/danm/go/src/github.com/zwirec/TGChatScanner/service/service.go:216: Server started
+2017/08/25 03:02:59 /home/danm/go/src/github.com/zwirec/TGChatScanner/requestHandler/fileDownloadersPool.go:43: comes on download: {FileDownloadURL:https://api.telegram.org/file/bot408181358:AAF7L-k-0yEQEQfzCKDIEy_cALDZxAI1vUg/photos/file_31 LocalPath:/var/www/tgchatscanner/images/358166474/2017-22-08/AgADAgADTagxG3lK4EhsavEwmCFYplgVSw0ABKqcjBVKdSJTDR0OAAEC Basics:0xc420126af0 Status:0xc4202aa928}
+2017/08/25 03:02:59 /home/danm/go/src/github.com/zwirec/TGChatScanner/requestHandler/fileDownloadersPool.go:47: comes from download: {Link:0xc420106750 Error:<nil>}
+2017/08/25 03:03:01 /home/danm/go/src/github.com/zwirec/TGChatScanner/requestHandler/handlers/webhook.go:78: update 413164723: request timeout
+2017/08/25 03:03:29 /home/danm/go/src/github.com/zwirec/TGChatScanner/service/service.go:269: Gracefully stopping...
+2017/08/25 03:03:29 /home/danm/go/src/github.com/zwirec/TGChatScanner/service/service.go:219: http: Server closed

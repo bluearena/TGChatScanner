@@ -9,7 +9,8 @@ import (
 	"strconv"
 )
 
-var UserKey = "user"
+
+
 
 func GetImages(w http.ResponseWriter, req *http.Request) {
 	errLog := appContext.ErrLogger

@@ -9,7 +9,6 @@ import (
 	"github.com/zwirec/TGChatScanner/models"
 	"github.com/zwirec/TGChatScanner/requestHandler/appContext"
 	file "github.com/zwirec/TGChatScanner/requestHandler/filetypes"
-	"log"
 	"mime"
 	"net/http"
 	"net/url"
@@ -21,7 +20,11 @@ import (
 const (
 	UserStatsURL     = "/stats"
 	MaxFailedUpdates = 100
-	UpdateTimeout = 3 * time.Second
+	UpdateTimeout    = 3 * time.Second
+
+	CommandType  = "command"
+	PictureType  = "picture"
+	DocumentType = "doc"
 )
 
 var (
@@ -31,59 +34,52 @@ var (
 
 func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	message := ctx.Value(appContext.MessageKey).(*TGBotAPI.Message)
-	updateID := ctx.Value(appContext.UpdateIdKey).(int)
+	updateID := ctx.Value(UpdateKey).(*TGBotAPI.Update).UpdateId
+	message := ctx.Value(MessageKey).(*TGBotAPI.Message)
+	uptype := ctx.Value(UpdateTypeKey).(string)
+
 	accLog := appContext.AccessLogger
 	errLog := appContext.ErrLogger
 
-	var fb *file.FileBasic
-
-	if len(message.Entities) != 0 && message.Entities[0].Type == "bot_command" {
-		if err := BotCommandRouter(message); err != nil {
-			errLog.Println(err)
-			if err == ErrUnexpectedCommand {
-				logHttpRequest(accLog, req, http.StatusOK)
-				w.WriteHeader(http.StatusOK)
-			} else {
-				logHttpRequest(accLog, req, http.StatusInternalServerError)
-				w.WriteHeader(http.StatusInternalServerError)
-			}
-			return
-		}
-	} else if message.Document != nil && isPicture(message.Document.MimeType) {
-		fb = &file.FileBasic{
-			FileId: message.Document.FileId,
-			Type:   "photo",
-			Sent:   time.Unix(int64(message.Date), 0),
-			From:   message.Chat.Id,
-			Errorc: make(chan error, 1),
-		}
-
-	} else if pl := len(message.Photo); pl != 0 {
-		photo := message.Photo[pl-1]
-		fb = &file.FileBasic{
-			FileId: photo.FileId,
-			Type:   "photo",
-			Sent:   time.Unix(int64(message.Date), 0),
-			From:   message.Chat.Id,
-			Errorc: make(chan error, 1),
-		}
+	err := autoCreateChat(message)
+	if err != nil {
+		logHttpRequest(accLog, req, http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	if fb != nil {
+	status := http.StatusOK
+
+	switch uptype {
+	case CommandType:
+		err = BotCommandRouter(message)
+		if err != nil {
+			status = http.StatusInternalServerError
+			errLog.Println(err)
+		}
+		status = http.StatusOK
+
+	case DocumentType:
+		fb := file.NewFileBasic(message, "photo", message.Document.FileId)
 		ctx, cancel := context.WithTimeout(context.Background(), UpdateTimeout)
 		defer cancel()
-		err := handleFile(fb, ctx)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			logHttpRequest(accLog, req, http.StatusInternalServerError)
-			errLog.Printf("update %d: %s", updateID, err)
-			return
-		}
+		err = handleFile(fb, ctx)
+
+	case PictureType:
+		photo := message.Photo[len(message.Photo)-1]
+		fb := file.NewFileBasic(message, "photo", photo.FileId)
+		ctx, cancel := context.WithTimeout(context.Background(), UpdateTimeout)
+		defer cancel()
+		err = handleFile(fb, ctx)
 	}
 
-	logHttpRequest(accLog, req, http.StatusOK)
-	w.WriteHeader(http.StatusOK)
+	if err != nil {
+		status = http.StatusInternalServerError
+		errLog.Printf("update %d: %s", updateID, err)
+		return
+	}
+	logHttpRequest(accLog, req, status)
+	w.WriteHeader(status)
 }
 
 func BotCommandRouter(message *TGBotAPI.Message) error {
@@ -200,4 +196,18 @@ func handleFile(fb *file.FileBasic, ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+func autoCreateChat(message *TGBotAPI.Message) error {
+
+	title := message.Chat.Title
+	if title == "" {
+		title = message.Chat.Username
+	}
+
+	chat := &models.Chat{
+		TGID:  message.Chat.Id,
+		Title: title,
+	}
+	return chat.CreateIfNotExists(appContext.DB)
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/zwirec/TGChatScanner/service"
 	"log"
-	"github.com/zwirec/TGChatScanner/modelManager"
 )
 
 func main() {

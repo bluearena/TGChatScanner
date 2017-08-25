@@ -3,6 +3,7 @@ package filetypes
 import (
 	"context"
 	"time"
+	"github.com/zwirec/TGChatScanner/TGBotApi"
 )
 
 const (
@@ -43,3 +44,13 @@ type DownloadedFile struct {
 type CompleteFile FileLink
 
 type FileInfo FileLink
+
+func NewFileBasic(message *TGBotAPI.Message, kind string, fileid string) *FileBasic {
+	return &FileBasic{
+		FileId: fileid,
+		Type:   kind,
+		Sent:   time.Unix(int64(message.Date), 0),
+		From:   message.Chat.Id,
+		Errorc: make(chan error, 1),
+	}
+}
