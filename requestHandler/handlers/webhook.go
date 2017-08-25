@@ -80,18 +80,23 @@ func BotUpdateHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func BotCommandRouter(message *TGBotAPI.Message) error {
-	r := regexp.MustCompile(`/(start(?:group)?|mystats|wantscan)?\s*`)
+	r := regexp.MustCompile(`/(start(?:group)?|mystats|wantscan)?\s*(newtoken)?\s*`)
 	command := r.FindStringSubmatch(message.Text)
 	if len(command) == 0 {
 		return ErrUnexpectedCommand
 	}
+	cmLen := len(command)
 	switch command[1] {
 	case "start":
 		fallthrough
 	case "startgroup":
-		hello := "Hello, chat " + message.Chat.Title
-		_, err := appContext.BotAPI.SendMessage(message.Chat.Id, hello, true)
-		return err
+		if cmLen == 2 {
+			hello := createHello(&message.Chat)
+			_, err := appContext.BotAPI.SendMessage(message.Chat.Id, hello, true)
+			return err
+		}else if cmLen == 3 && command[2] == "newtoken"{
+			return authorizeAccess(message)
+		}
 	case "wantscan":
 		err := AddSubscription(&message.From, &message.Chat)
 		if err != nil{
@@ -102,26 +107,7 @@ func BotCommandRouter(message *TGBotAPI.Message) error {
 
 		return err
 	case "mystats":
-		if message.Chat.Type != "private"{
-			url := "https://telegram.me/chatscannerbot?start"
-			answer := "Ask here: " + url
-			_, err := appContext.BotAPI.SendMessage(message.Chat.Id, answer, true)
-			return err
-		}
-		usr := models.User{
-			TGID:     message.From.Id,
-			Username: message.From.UserName,
-		}
-		err := usr.CreateIfNotExists(appContext.DB)
-		token, err := SetUserToken(message.From.Id)
-		if err != nil {
-			return err
-		}
-		us := BuildUserStatURL(token)
-		_, err = appContext.BotAPI.SendMessage(message.Chat.Id, us, true)
-		if err != nil {
-			return err
-		}
+		return  authorizeAccess(message)
 	}
 	return nil
 }
@@ -143,11 +129,11 @@ func AddSubscription(user *TGBotAPI.User, chat *TGBotAPI.Chat) (err error) {
 		Username: username,
 	}
 	tx := db.Begin()
-	if err := tx.Model(&u).Association("Chats").Append(ch).Error; err != nil {
+	if err := u.CreateIfNotExists(tx); err != nil {
 		tx.Rollback()
 		return err
 	}
-	if err := u.CreateIfNotExists(tx); err != nil {
+	if err := tx.Model(&u).Association("Chats").Append(ch).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -161,10 +147,10 @@ func SetUserToken(userId int) (string, error) {
 		ExpiredTo: time.Now().AddDate(0, 0, 1),
 		UserID:    userId,
 	}
-
 	if err := appContext.DB.Save(t).Error; err != nil {
 		return "", err
 	}
+
 	return t.Token, nil
 }
 
@@ -219,4 +205,44 @@ func autoCreateChat(message *TGBotAPI.Message) error {
 		Title: title,
 	}
 	return chat.CreateIfNotExists(appContext.DB)
+}
+
+func createHello(chat *TGBotAPI.Chat) string{
+	var hello bytes.Buffer
+	hello.WriteString("Hello, ")
+	if chat.Type == "private" {
+		hello.WriteString("user ")
+	} else{
+		hello.WriteString("chat ")
+	}
+	hello.WriteString(chat.Title)
+	hello.WriteString("\nAvailable commands:\n")
+	hello.WriteString("/wantscan to add chat to your subscriptions\n")
+	hello.WriteString("/mystats to get link on your image feed\n")
+	hello.WriteString("/noscan to remove chat from your subscriptions\n")
+	return hello.String()
+}
+
+func authorizeAccess(message *TGBotAPI.Message) error {
+	if message.Chat.Type != "private"{
+		botUrl := "https://telegram.me/chatscannerbot?start"
+		answer := "Ask here: " + botUrl
+		_, err := appContext.BotAPI.SendMessage(message.Chat.Id, answer, true)
+		return err
+	}
+	usr := models.User{
+		TGID:     message.From.Id,
+		Username: message.From.UserName,
+	}
+	err := usr.CreateIfNotExists(appContext.DB)
+	token, err := SetUserToken(message.From.Id)
+	if err != nil {
+		return err
+	}
+	us := BuildUserStatURL(token)
+	_, err = appContext.BotAPI.SendMessage(message.Chat.Id, us, true)
+	if err != nil {
+		return err
+	}
+	return nil
 }
