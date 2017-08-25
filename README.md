@@ -1,4 +1,4 @@
 # TGChatScanner
 
-## Docs
-http://godoc.org/github.com/zwirec/TGChatScanner
+## Весь проект в одном коммите:
+https://github.com/zwirec/TGChatScanner/tree/r
