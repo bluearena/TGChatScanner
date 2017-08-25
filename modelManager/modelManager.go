@@ -22,7 +22,6 @@ func ConnectToDB(dbinfo map[string]interface{}) (*gorm.DB, error) {
 }
 
 func InitDB(db *gorm.DB) error {
-	db.LogMode(true)
 	db.AutoMigrate(&models.User{}, &models.Chat{}, &models.Tag{}, models.Image{}, models.Token{})
 	db.Model(&models.Token{}).AddForeignKey("user_id", "users(tg_id)", "RESTRICT", "RESTRICT")
 	return db.Error
