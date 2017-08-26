@@ -29,9 +29,15 @@ func MiddlewareLogin(next http.Handler) http.Handler {
 
 			memcache := appContext.Cache
 
-			user, expire, _ := memcache.GetWithExpiration(token)
+			var user *models.User
 
-			if user == nil || expire.Before(time.Now().Add(2*time.Minute)) {
+			u, expire, ok := memcache.GetWithExpiration(token)
+
+			if ok {
+				user = u.(*models.User)
+			}
+
+			if !ok || (ok && expire.Before(time.Now().Add(2*time.Minute))) {
 				tok := models.Token{Token: token}
 				expired_to := tok.ExpiredTo
 				user = tok.GetUserByToken(appContext.DB)

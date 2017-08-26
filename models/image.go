@@ -51,7 +51,7 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 	}
 
 	if query.
-	Find(&imgSlice).
+		Find(&imgSlice).
 		RecordNotFound() {
 		return nil, db.Error
 	}

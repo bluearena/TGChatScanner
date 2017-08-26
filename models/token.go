@@ -21,12 +21,12 @@ func (t *Token) Store(db *gorm.DB) error {
 }
 
 func (t *Token) GetUserByToken(db *gorm.DB) *User {
-	if !db.Model(&Token{}).Preload("User").Preload("User.Chats").
+	if db.Model(&Token{}).Preload("User").Preload("User.Chats").
 		Where("token = ? AND expired_to > ?", t.Token, time.Now()).
 		First(t).RecordNotFound() {
-		return &t.User
+		return nil
 	}
-	return nil
+	return &t.User
 }
 
 func (t *Token) GetExpire(db gorm.DB) time.Time {

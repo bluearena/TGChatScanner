@@ -15,7 +15,7 @@ func GetImages(w http.ResponseWriter, req *http.Request) {
 
 	user := req.Context().Value(UserKey).(*models.User)
 
-	if len(user.Chats) == 0 {
+	if len((*user).Chats) == 0 {
 		response := ImagesJSON{
 			Err:    "",
 			Images: nil,
