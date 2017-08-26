@@ -44,5 +44,16 @@ button {
 
 main {
     width:100%;
+}
 
+.mfp-title {
+    text-align: center;
+}
+
+.mfp-bottom-bar {
+    position: fixed;
+}
+
+.badge {
+    margin: 2px;
 }

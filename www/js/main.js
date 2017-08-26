@@ -7,9 +7,14 @@ var selectedChatId = 0;
 function displayPhoto(photo) {
     var block = document.createElement('div');
 
+    let tags = "";
+    photo.tags.forEach(function(tag) {
+        tags += '<span class=\'badge\'>' + tag.name + '</span>' 
+    });
+
     block.className = 'thumbnail';
     block.innerHTML =
-        '<a class="photo-link" href="/images' + photo.src + '">' +
+        '<a class="photo-link" title="' + tags + '" href="/images' + photo.src + '">' +
         '<img alt="Фото недоступно" src="/images' + photo.src + '">' +
         '</a>';
 
@@ -40,6 +45,7 @@ function setPhotos(tags, chatId) {
         .done(function(data) {
             $(document).find('#more-button-row').hide();
             $(document).find('.alert').hide();
+            console.log(data);
 
             document.getElementById('content').innerHTML = '<div class="col-lg-3"></div><div class="col-lg-3"></div><div class="col-lg-3"></div><div class="col-lg-3"></div>';
             data.images.forEach(displayPhoto);
@@ -56,9 +62,7 @@ function setToken() {
     token = url.searchParams.get("token");
 
     if (token == null)
-        console.log("Token not found")
-    else
-        console.log("Token", token)
+        $('#token-error').show();
 
     defer.resolve();
     return defer.promise();
