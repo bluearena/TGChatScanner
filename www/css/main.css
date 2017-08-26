@@ -3,7 +3,7 @@
     margin-bottom: 40px;
 }
 
-#content, #more-button-row {
+#content, #more-button-row, #token-error {
     display: none;
 }
 
