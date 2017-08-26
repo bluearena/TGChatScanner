@@ -5,7 +5,7 @@ var tags = [];
 var selectedChatId = 0;
 
 function displayPhoto(photo) {
-    var block = document.createElement('div');
+    let block = document.createElement('div');
 
     let tags = "";
     photo.tags.forEach(function(tag) {
@@ -15,17 +15,18 @@ function displayPhoto(photo) {
     block.className = 'thumbnail';
     block.innerHTML =
         '<a class="photo-link" title="' + tags + '" href="/images' + photo.src + '">' +
-        '<img alt="Фото недоступно" src="/images' + photo.src + '">' +
+            '<img alt="Фото недоступно" src="/images' + photo.src + '">' +
         '</a>';
 
     salvattore.appendElements(document.querySelector('#content'), [block]);
 };
 
 function setPhotos(tags, chatId) {
+    let data;
     if (chatId == 0) {
-        var data = ""
+        data = ""
     } else {
-        var data = "chat_id=" + chatId;
+        data = "chat_id=" + chatId;
     }
 
     tags.forEach(function(tag) {
@@ -36,23 +37,21 @@ function setPhotos(tags, chatId) {
     });
 
     $.ajax({
-            url: '/api/v1/images.get',
-            dataType: "json",
-            type: "get",
-            headers: { "X-User-Token": token },
-            data: data
-        })
-        .done(function(data) {
-            $(document).find('#more-button-row').hide();
-            $(document).find('.alert').hide();
-            console.log(data);
+        url: '/api/v1/images.get',
+        dataType: 'json',
+        type: 'get',
+        data: data
+    })
+    .done(function(data) {
+        $(document).find('#more-button-row').hide();
+        $(document).find('.alert').hide();
 
-            document.getElementById('content').innerHTML = '<div class="col-lg-3"></div><div class="col-lg-3"></div><div class="col-lg-3"></div><div class="col-lg-3"></div>';
-            data.images.forEach(displayPhoto);
+        document.getElementById('content').innerHTML = '<div class="col-lg-3"></div><div class="col-lg-3"></div><div class="col-lg-3"></div><div class="col-lg-3"></div>';
+        data.images.forEach(displayPhoto);
 
-            $('.photo-link').magnificPopup({ type: 'image' });
-            $(document).find('#content').show();
-        });
+        $('.photo-link').magnificPopup({ type: 'image' });
+        $(document).find('#content').show();
+    });
 }
 
 function setToken() {
@@ -70,12 +69,14 @@ function setToken() {
 
 function setTags() {
     let defer = $.Deferred();
+    let url, data;
+
     if (selectedChatId == 0) {
-        var url = "/api/v1/users.tags";
-        var data = {};
+        url = '/api/v1/users.tags';
+        data = {};
     } else {
-        var url = "/api/v1/chat.tags";
-        var data = {"chat_id": selectedChatId};
+        url = '/api/v1/chat.tags';
+        data = {'chat_id': selectedChatId};
     }
 
     $.ajax({
@@ -106,7 +107,7 @@ function setTags() {
 function handleChats(data) {
     let i = 0
 
-    var results = [{
+    let results = [{
         id: i.toString(),
         text: "All chats"
     }];
@@ -136,8 +137,8 @@ $(function() {
         $('#chat_select').select2({
             ajax: {
                 url: '/api/v1/chats.get',
-                dataType: "json",
                 headers: { "X-User-Token": token },
+                dataType: 'json',
                 processResults: handleChats,
             },
             minimumResultsForSearch: Infinity
