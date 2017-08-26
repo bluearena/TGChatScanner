@@ -1,0 +1,26 @@
+{
+  "name": "tgchatscanner",
+  "homepage": "https://github.com/zwirec/TGChatScanner",
+  "description": "Telegram Chat Scanner Web UI",
+  "main": "index.html",
+  "keywords": [
+    "telegram"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "^3.3.7",
+    "salvattore": "^1.0.9",
+    "select2": "^4.0.3",
+    "select2-bootstrap-theme": "^0.1.0-beta.10",
+    "magnific-popup": "^1.1.0",
+    "jquery": "^3.2.1"
+  }
+}
