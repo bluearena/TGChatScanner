@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/jinzhu/gorm"
 	memcache "github.com/patrickmn/go-cache"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
@@ -27,10 +26,7 @@ import (
 	"time"
 )
 
-var (
-	home      = os.Getenv("HOME")
-	configURL = os.Getenv("TGCHATSCANNER_REMOTE_CONFIG")
-)
+var configURL = os.Getenv("TGCHATSCANNER_REMOTE_CONFIG")
 
 const (
 	DefaultWorkersNumber   = 5
@@ -39,17 +35,13 @@ const (
 )
 
 func init() {
-	if home == "" {
-		u, err := user.Current()
-		if err != nil {
-			log.Fatal(err)
-		}
-		home := u.HomeDir
-		fmt.Fprint(ioutil.Discard, home)
+	u, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
 	}
-	if configURL == "" {
 
-		configURL = home + "/.config/tgchatscanner/config.json"
+	if configURL == "" {
+		configURL = u.HomeDir + "/.config/tgchatscanner/config.json"
 	}
 }
 
