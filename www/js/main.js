@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var tags = [];
 var selectedChatId = 0;
@@ -22,11 +22,11 @@ function displayPhoto(photo) {
 
 function setPhotos(tags, chatId) {
     let data;
-    if (chatId == 0) {
+
+    if (chatId == 0)
         data = ""
-    } else {
+    else
         data = "chat_id=" + chatId;
-    }
 
     tags.forEach(function(tag) {
         if (data != "")
@@ -116,16 +116,15 @@ function handleChats(data) {
         text: "All chats"
     }];
 
-    data["chats"]
-        .sort(function(a, b) {
-            return a.title.localeCompare(b.title);
-        })
-        .forEach(function(item) {
-            results.push({
-                id: item.chat_id,
-                text: item.title
-            });
+    data["chats"].sort(function(a, b) {
+        return a.title.localeCompare(b.title);
+    })
+    .forEach(function(item) {
+        results.push({
+            id: item.chat_id,
+            text: item.title
         });
+    });
 
     return { results: results };
 }
