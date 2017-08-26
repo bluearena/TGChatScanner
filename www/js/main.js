@@ -1,6 +1,5 @@
 "use strict";
 
-var token;
 var tags = [];
 var selectedChatId = 0;
 
@@ -40,6 +39,7 @@ function setPhotos(tags, chatId) {
         url: '/api/v1/images.get',
         dataType: 'json',
         type: 'get',
+        headers: {'X-User-Token': localStorage.token},
         data: data
     })
     .done(function(data) {
@@ -58,10 +58,14 @@ function setToken() {
     let defer = $.Deferred();
 
     let url = new URL(window.location.href);
-    token = url.searchParams.get("token");
+    let token = url.searchParams.get('token');
 
-    if (token == null)
+    if (token != null) {
+        localStorage.token = token;
+        history.replaceState({}, "", url.pathname);
+    } else if (localStorage.token == null) {
         $('#token-error').show();
+    }
 
     defer.resolve();
     return defer.promise();
@@ -83,7 +87,7 @@ function setTags() {
         url: url,
         dataType: 'json',
         type: 'get',
-        headers: { 'X-User-Token': token },
+        headers: {'X-User-Token': localStorage.token},
         data: data
     }).then(function(data) {
         let i = 0;
@@ -137,8 +141,8 @@ $(function() {
         $('#chat_select').select2({
             ajax: {
                 url: '/api/v1/chats.get',
-                headers: { "X-User-Token": token },
                 dataType: 'json',
+                headers: {'X-User-Token': localStorage.token},
                 processResults: handleChats,
             },
             minimumResultsForSearch: Infinity
