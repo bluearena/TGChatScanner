@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/jinzhu/gorm"
 	memcache "github.com/patrickmn/go-cache"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
@@ -159,10 +160,15 @@ func (s *Service) parseConfig(URL string) error {
 	var configRaw []byte
 
 	_, err := url.Parse(URL)
-
 	if err == nil {
 		res, err := http.Get(URL)
 		if err != nil {
+			s.errLogger.Println(err)
+			return err
+		}
+
+		if res.StatusCode != 200 {
+			err := errors.New("config download error: " + res.Status)
 			s.errLogger.Println(err)
 			return err
 		}
