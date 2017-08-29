@@ -13,7 +13,7 @@ function displayPhoto(photo, imagesPrefix) {
 
     block.className = 'thumbnail';
     block.innerHTML =
-        `<a class="photo-link" title="${tagsString}" href="${imagesPrefix}${photo.src}">` +
+        `<a class="photo-link" href="${imagesPrefix}${photo.src}" data-fancybox="group" data-caption="${tagsString}">` +
             `<img alt="Фото недоступно" src="/images${photo.src}">` +
         `</a>`;
 
@@ -42,7 +42,6 @@ function setPhotos(tags, chatId) {
         document.getElementById('content').innerHTML = '<div class="col-lg-3"></div><div class="col-lg-3"></div><div class="col-lg-3"></div><div class="col-lg-3"></div>';
         data.images.forEach(photo => displayPhoto(photo, data.images_prefix));
 
-        $('.photo-link').magnificPopup({type: 'image'});
         $(document).find('#content').show();
     });
 }
