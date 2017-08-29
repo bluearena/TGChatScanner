@@ -3,14 +3,11 @@
     margin-bottom: 40px;
 }
 
-#content, #more-button-row {
+#content, #more-button-row, #token-error {
     display: none;
 }
 
 .thumbnail {
-    /*height: 250px;
-    width: 250px;*/
-
     animation: fadein 0.5s;
 }
 
@@ -33,40 +30,6 @@ button {
     width: 100% !important;
 }
 
-#account {
-    text-align: center;
-}/*
-.result {
-    padding-top: 4px;
-    padding-bottom: 3px;
-}
-.avatar {
-    float: left;
-    margin-right: 10px;
-}*/
-
-.avatar > img {
-    border-radius: 50%;
-    height: 75px;
-}
-/*
-.description {
-    margin: auto;
-}
-*/
-.username {
-    color: black;
-    font-weight: bold;
-    word-wrap: break-word;
-    line-height: 1.1;
-    height: 50%;
-}
-/*
-.fullname {
-    font-size: 13px;
-    height: 50%;
-}*/
-
 #content[data-columns]::before {
     content: '4 col-lg-3';
 }
@@ -81,5 +44,8 @@ button {
 
 main {
     width:100%;
+}
 
+.badge {
+    margin: 2px;
 }

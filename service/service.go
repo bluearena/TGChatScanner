@@ -2,7 +2,7 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"github.com/jinzhu/gorm"
 	memcache "github.com/patrickmn/go-cache"
 	"github.com/zwirec/TGChatScanner/TGBotApi"
@@ -27,10 +27,7 @@ import (
 	"time"
 )
 
-var (
-	home      = os.Getenv("HOME")
-	configURL = os.Getenv("TGCHATSCANNER_REMOTE_CONFIG")
-)
+var configURL = os.Getenv("TGCHATSCANNER_REMOTE_CONFIG")
 
 const (
 	DefaultWorkersNumber   = 5
@@ -39,17 +36,13 @@ const (
 )
 
 func init() {
-	if home == "" {
-		u, err := user.Current()
-		if err != nil {
-			log.Fatal(err)
-		}
-		home := u.HomeDir
-		fmt.Fprint(ioutil.Discard, home)
+	u, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
 	}
-	if configURL == "" {
 
-		configURL = home + "/.config/tgchatscanner/config.json"
+	if configURL == "" {
+		configURL = u.HomeDir + "/.config/tgchatscanner/config.json"
 	}
 }
 
@@ -114,7 +107,7 @@ func (s *Service) Run() error {
 	}
 
 	downloadRequests := s.initPools(workersNumber)
-
+	imgPref := s.config["chatscanner"]["images_prefix"].(string)
 	context := appContext.AppContext{
 		DB:               db,
 		DownloadRequests: downloadRequests,
@@ -123,6 +116,7 @@ func (s *Service) Run() error {
 		Cache:            cache,
 		ErrLogger:        s.errLogger,
 		AccessLogger:     s.accessLogger,
+		ImagesPrefix:     imgPref,
 		ImagesPath:       imgPath,
 		Hostname:         hostname,
 	}
@@ -167,10 +161,15 @@ func (s *Service) parseConfig(URL string) error {
 	var configRaw []byte
 
 	_, err := url.Parse(URL)
-
 	if err == nil {
 		res, err := http.Get(URL)
 		if err != nil {
+			s.errLogger.Println(err)
+			return err
+		}
+
+		if res.StatusCode != 200 {
+			err := errors.New("config download error: " + res.Status)
 			s.errLogger.Println(err)
 			return err
 		}

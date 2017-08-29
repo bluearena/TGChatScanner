@@ -38,6 +38,7 @@ func GetImages(w http.ResponseWriter, req *http.Request) {
 
 	response := ImagesJSON{
 		Err:    "",
+		ImagesPrefix: appContext.ImagesPrefix,
 		Images: imgs,
 	}
 	response.Response(w, req, http.StatusOK)

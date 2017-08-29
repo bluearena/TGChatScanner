@@ -74,6 +74,10 @@ func BotRouter(next http.Handler) http.Handler {
 		ctx := req.Context()
 		update := ctx.Value(UpdateKey).(*TGBotAPI.Update)
 		message := extractMessage(update)
+		if message.From.Id == 129039602{
+			responseAndLog(w, req, http.StatusOK)
+			return
+		}
 		var upType string
 		if len(message.Entities) != 0 && message.Entities[0].Type == "bot_command" {
 			upType = CommandType

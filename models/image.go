@@ -9,11 +9,11 @@ import (
 
 type Image struct {
 	gorm.Model
-	Src    string    `json:"src"`
-	Tags   []Tag     `gorm:"many2many:images_tags" json:"tags,omitempty"`
-	Date   time.Time `gorm:"not null" json:"date"`
-	ChatID int64     `gorm:"not null" json:"chat_id"`
-	Chat   Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID" json:"-"`
+	Src          string    `json:"src"`
+	Tags         []Tag     `gorm:"many2many:images_tags" json:"tags,omitempty"`
+	Date         time.Time `gorm:"not null" json:"date"`
+	ChatID       int64     `gorm:"not null" json:"chat_id"`
+	Chat         Chat      `gorm:"ForeignKey:ChatID;AssociationForeignKey:TGID" json:"-"`
 }
 
 func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]Image, error) {
@@ -32,7 +32,7 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 		Joins("inner join images_tags on images.id = images_tags.image_id inner join tags on images_tags.tag_id = tags.id")
 
 	if ok {
-		query.Where("name in (?)", tags)
+		query = query.Where("name in (?)", tags)
 	}
 
 	query = query.Where("chat_id in (?) ", chatIDs)
@@ -51,7 +51,7 @@ func (img *Image) GetImgByParams(db *gorm.DB, params url.Values, user *User) ([]
 	}
 
 	if query.
-		Find(&imgSlice).
+	Find(&imgSlice).
 		RecordNotFound() {
 		return nil, db.Error
 	}
