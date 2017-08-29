@@ -1,55 +1,48 @@
 'use strict';
 
-var tags = [];
-var selectedChatId = 0;
+let tags = [];
+let selectedChatId = 0;
 
-function displayPhoto(photo) {
+function displayPhoto(photo, imagesPrefix) {
     let block = document.createElement('div');
 
-    let tags = "";
-    photo.tags.forEach(function(tag) {
-        tags += '<span class=\'badge\'>' + tag.name + '</span>' 
-    });
+    let tagsString = '';
+    for (let i = 0; i < photo.tags.length; ++i) {
+        tagsString += `<span class='badge'>${photo.tags[i].name}</span>` 
+    }
 
     block.className = 'thumbnail';
     block.innerHTML =
-        '<a class="photo-link" title="' + tags + '" href="/images' + photo.src + '">' +
-            '<img alt="Фото недоступно" src="/images' + photo.src + '">' +
-        '</a>';
+        `<a class="photo-link" title="${tagsString}" href="${imagesPrefix}${photo.src}">` +
+            `<img alt="Фото недоступно" src="/images${photo.src}">` +
+        `</a>`;
 
     salvattore.appendElements(document.querySelector('#content'), [block]);
 };
 
 function setPhotos(tags, chatId) {
-    let data;
-
-    if (chatId == 0)
-        data = ""
-    else
-        data = "chat_id=" + chatId;
-
-    tags.forEach(function(tag) {
-        if (data != "")
-            data += "&";
-
-        data += "tag=" + tag;
-    });
-
-    $.ajax({
+    let settings = {
         url: '/api/v1/images.get',
         dataType: 'json',
         type: 'get',
         headers: {'X-User-Token': localStorage.token},
-        data: data
-    })
-    .done(function(data) {
+        traditional: true,
+        data: {
+            tag: tags
+        }
+    };
+
+    if (chatId != 0)
+        settings.data.chat_id = chatId;
+
+    $.ajax(settings).done(data => {
         $(document).find('#more-button-row').hide();
         $(document).find('.alert').hide();
 
         document.getElementById('content').innerHTML = '<div class="col-lg-3"></div><div class="col-lg-3"></div><div class="col-lg-3"></div><div class="col-lg-3"></div>';
-        data.images.forEach(displayPhoto);
+        data.images.forEach(photo => displayPhoto(photo, data.images_prefix));
 
-        $('.photo-link').magnificPopup({ type: 'image' });
+        $('.photo-link').magnificPopup({type: 'image'});
         $(document).find('#content').show();
     });
 }
@@ -73,34 +66,28 @@ function setToken() {
 
 function setTags() {
     let defer = $.Deferred();
-    let url, data;
 
-    if (selectedChatId == 0) {
-        url = '/api/v1/users.tags';
-        data = {};
-    } else {
-        url = '/api/v1/chat.tags';
-        data = {'chat_id': selectedChatId};
-    }
-
-    $.ajax({
-        url: url,
+    let settings = {
         dataType: 'json',
         type: 'get',
         headers: {'X-User-Token': localStorage.token},
-        data: data
-    }).then(function(data) {
+    };
+
+    if (selectedChatId == 0) {
+        settings.url = '/api/v1/users.tags';
+    } else {
+        settings.url = '/api/v1/chat.tags';
+        settings.data = {'chat_id': selectedChatId};
+    }
+
+    $.ajax(settings).then(data => {
         let i = 0;
 
-        tags = data["tags"].sort(function(a, b) {
-            return a.name.localeCompare(b.name);
-        })
-        .map(function(tag) {
-            return {
-                id: (i++).toString(),
-                text: tag.name
-            };
-        });
+        tags = data['tags'].sort((a, b) => a.name.localeCompare(b.name))
+        .map(tag => ({
+            id: (i++).toString(),
+            text: tag.name
+        }));
 
         defer.resolve();
     });
@@ -113,29 +100,26 @@ function handleChats(data) {
 
     let results = [{
         id: i.toString(),
-        text: "All chats"
+        text: 'All chats'
     }];
 
-    data["chats"].sort(function(a, b) {
-        return a.title.localeCompare(b.title);
-    })
-    .forEach(function(item) {
+    data['chats'].sort((a, b) => a.title.localeCompare(b.title))
+    .forEach(item => {
         results.push({
             id: item.chat_id,
             text: item.title
         });
     });
 
-    return { results: results };
+    return {results};
 }
 
-$(function() {
+$(() => {
+    $.fn.select2.defaults.set('theme', 'bootstrap');
     $('#tags_select').select2();
 
-    setToken().then(function() {
+    setToken().then(() => {
         setPhotos([], selectedChatId);
-
-        $.fn.select2.defaults.set("theme", "bootstrap");
 
         $('#chat_select').select2({
             ajax: {
@@ -147,26 +131,24 @@ $(function() {
             minimumResultsForSearch: Infinity
         });
 
-        setTags().then(function() {
+        setTags().then(() => {
             $('#tags_select').select2({
                 data: tags,
                 allowClear: true
             });
 
-            $('#tags_select').on('change', function(event) {
+            $('#tags_select').on('change', event => {
                 setPhotos(
-                    $('#tags_select').select2('data').map(function(tag) {
-                        return tag.text
-                    }),
+                    $('#tags_select').select2('data').map(tag => tag.text),
                     selectedChatId
                 );
             });
         });
 
-        $('#chat_select').on('select2:select', function(event) {
+        $('#chat_select').on('select2:select', event => {
             selectedChatId = event.params.data.id;
 
-            setTags().then(function() {
+            setTags().then(() => {
                 $('#tags_select').empty();
 
                 $('#tags_select').select2({
