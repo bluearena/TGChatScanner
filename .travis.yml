@@ -1,11 +1,9 @@
-language: go1.8
+language: go
 sudo: false
 go:
   - tip
 os:
   - linux
-install:
-  - go get -u -t -v ./...
 script:
   - go build -v -o bin/go-web-search
   - go test ./...
