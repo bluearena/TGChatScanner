@@ -19,6 +19,7 @@ var (
 	ErrLogger        *log.Logger
 	AccessLogger     *log.Logger
 	ImagesPath       string
+	ImagesPrefix     string
 	Hostname         string
 )
 
@@ -30,6 +31,7 @@ type AppContext struct {
 	Cache            *memcache.Cache
 	ErrLogger        *log.Logger
 	AccessLogger     *log.Logger
+	ImagesPrefix     string
 	ImagesPath       string
 	Hostname         string
 }
@@ -42,6 +44,7 @@ func SetAppContext(context *AppContext) {
 	Cache = context.Cache
 	ErrLogger = context.ErrLogger
 	AccessLogger = context.AccessLogger
+	ImagesPrefix = context.ImagesPrefix
 	ImagesPath = context.ImagesPath
 	Hostname = context.Hostname
 }

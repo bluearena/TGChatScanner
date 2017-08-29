@@ -13,8 +13,9 @@ type UserJSON struct {
 }
 
 type ImagesJSON struct {
-	Err    string         `json:"error"`
-	Images []models.Image `json:"images"`
+	Err          string         `json:"error"`
+	ImagesPrefix string         `json:"images_prefix, omitempty"`
+	Images       []models.Image `json:"images"`
 }
 
 type ChatsJSON struct {

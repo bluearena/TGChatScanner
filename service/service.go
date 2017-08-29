@@ -107,7 +107,7 @@ func (s *Service) Run() error {
 	}
 
 	downloadRequests := s.initPools(workersNumber)
-
+	imgPref := s.config["chatscanner"]["img_prefix"].(string)
 	context := appContext.AppContext{
 		DB:               db,
 		DownloadRequests: downloadRequests,
@@ -116,8 +116,9 @@ func (s *Service) Run() error {
 		Cache:            cache,
 		ErrLogger:        s.errLogger,
 		AccessLogger:     s.accessLogger,
+		ImagesPrefix:     imgPref,
 		ImagesPath:       imgPath,
-		Hostname:         hostname,
+		Hostname: hostname,
 	}
 
 	appContext.SetAppContext(&context)
