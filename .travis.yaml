@@ -1,0 +1,17 @@
+language: go1.8
+sudo: false
+go:
+  - tip
+os:
+  - linux
+install:
+  - go get -u -t -v ./...
+script:
+  - go build -v -o bin/go-web-search
+  - go test ./...
+notifications:
+  email:
+    recipients:
+      - zwirec@icloud.com
+    on_success: always
+    on_failure: always
