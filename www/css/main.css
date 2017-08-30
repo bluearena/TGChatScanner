@@ -30,9 +30,9 @@ button {
     width: 100% !important;
 }
 
-#content[data-columns]::before {
+/*#content[data-columns]::before {
     content: '4 col-lg-3';
-}
+}*/
 
 #main-view {
     display: inline-flex;
@@ -49,3 +49,8 @@ main {
 .badge {
     margin: 2px;
 }
+
+.column { float: left; }
+.size-1of2 { width: 50%; }
+.size-1of3 { width: 33.33333%; }
+.size-1of4 { width: 25%; }

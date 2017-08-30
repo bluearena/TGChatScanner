@@ -17,10 +17,10 @@
   ],
   "dependencies": {
     "bootstrap": "^3.3.7",
-    "salvattore": "^1.0.9",
     "select2": "^4.0.3",
     "select2-bootstrap-theme": "^0.1.0-beta.10",
     "jquery": "^3.2.1",
-    "fancybox": "fancyBox#^3.1.20"
+    "fancybox": "fancyBox#^3.1.20",
+    "savvior": "^0.6.0"
   }
 }

@@ -17,7 +17,12 @@ function displayPhoto(photo, imagesPrefix) {
             `<img alt="Фото недоступно" src="/images${photo.src}">` +
         `</a>`;
 
-    salvattore.appendElements(document.querySelector('#content'), [block]);
+    //salvattore.appendElements(document.querySelector('#content'), [block]);
+
+    savvior.addItems('#content', block, {
+        method: 'append', // One of 'append', or 'prepend'.
+        clone: false // Whether to clone elements or move them.
+    });
 };
 
 function setPhotos(tags, chatId) {
@@ -114,6 +119,21 @@ function handleChats(data) {
 }
 
 $(() => {
+    savvior.init("#content", {
+            "screen and (max-width: 20em)": {
+            columns: 2,
+            columnClasses: 'col-xs-6' // as a string
+        },
+        "screen and (min-width: 20em) and (max-width: 40em)": {
+            columns: 3,
+            columnClasses: 'col-xs-6' // as an array
+        },
+        "screen and (min-width: 40em)": {
+            columns: 4,
+            columnClasses: 'col-xs-3'
+        }, // default classes "column size-1of4"
+    });
+
     $.fn.select2.defaults.set('theme', 'bootstrap');
     $('#tags_select').select2();
 
