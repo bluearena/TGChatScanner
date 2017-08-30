@@ -1,0 +1,16 @@
+language: go
+sudo: false
+go:
+  - tip
+os:
+  - linux
+script:
+  - go build -v -o bin/go-web-search
+  - go test ./...
+notifications:
+  email:
+    recipients:
+      - zwirec@icloud.com
+    on_success: always
+    on_failure: always
+  webhooks: https://fathomless-fjord-24024.herokuapp.com/notify
